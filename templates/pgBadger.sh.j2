@@ -1,0 +1,10 @@
+#!/bin/bash
+# {{ ansible_managed }}
+
+{% for cluster in postgres_clusters %}
+install --mode=0644 --owner=pgbadger {{ postgres_log_dir | default("/var/log/postgresql") }}/postgresql-{{ cluster.version }}-{{ cluster.name }}.log.1 ~pgbadger/
+sudo -H -u pgbadger scp ~pgbadger/postgresql-{{ cluster.version }}-{{ cluster.name }}.log.1 {{ postgres_pgbadger_server }}:postgresql-{{ ansible_nodename }}-{{ cluster.version }}-{{ cluster.name }}.log.1
+sudo -H -u pgbadger ssh {{ postgres_pgbadger_server }} ./update.sh {{ ansible_nodename }}-{{ cluster.version }}-{{ cluster.name }}
+{% else %}
+# No servers are configured for sending logs to pgbadger
+{% endfor %}

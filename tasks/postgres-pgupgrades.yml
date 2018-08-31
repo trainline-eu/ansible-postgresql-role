@@ -1,0 +1,12 @@
+---
+- name: Find matching new cluster
+  set_fact:
+    postgres_new_cluster: "{{ postgres_clusters|selectattr('name','equalto',postgres_new_cluster_name)|selectattr('version','equalto',postgres_new_cluster_version|float)|list|first }}"
+
+- name: Extract database port of new matching cluster
+  set_fact:
+    postgres_new_cluster_port: "{{ (postgres_new_cluster|default({'port': 5432}))['port'] }}"
+
+- name: Upload pg_upgrade.sh script
+  template: src=pg_upgrade.sh.j2 dest=/var/lib/postgresql/pg_upgrade_{{ postgres_old_cluster_version }}_{{ postgres_new_cluster_version }}_{{ postgres_dbname }} owner=postgres group=postgres mode=0700
+  no_log: True

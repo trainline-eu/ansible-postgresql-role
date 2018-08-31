@@ -1,0 +1,154 @@
+---
+- name: Bring up docker containers
+  hosts: localhost
+  vars: &common_vars
+    postgres_version: 10
+    postgres_barman_directory: 'test-postgres-10'
+    postgres_barman_server: postgres_barman
+    barman_rsync_password: "secret_rsync"
+    barman_rsync_allowed_hosts: 172.17.0.0/24
+    postgres_allowed_hosts:
+      - user: all
+        range: 172.17.0.0/24
+    postgres_replication_hosts:
+      - user: replicator
+        range: 172.17.0.0/24
+    inventory:
+      - name: "{{ postgres_barman_server }}"
+        image: "python:3.7-stretch"
+      - name: postgres_one
+        image: "python:3.7-stretch"
+        links:
+          - "{{ postgres_barman_server }}"
+      - name: postgres_two
+        image: "python:3.7-stretch"
+        links:
+          - "{{ postgres_barman_server }}"
+          - postgres_one
+      - name: postgres_three
+        image: "python:3.7-stretch"
+        links:
+          - "{{ postgres_barman_server }}"
+          - postgres_one
+  roles:
+    - role: provision_docker
+      provision_docker_inventory: "{{inventory}}"
+      provision_docker_use_docker_connection: true
+  tasks:
+    - name: Group primary
+      add_host:
+        hostname: "{{item}}"
+        groups: primary
+        <<: *common_vars
+        postgres_clusters:
+          - version: "{{ postgres_version }}"
+            name: 'main'
+            port: 5432
+            fsync_enabled: True
+            checksums: False
+            archive_enabled: True
+            barman_directory: "{{ postgres_barman_directory }}"
+            users:
+              - username: barman
+                password: "secret_cocktail"
+                permissions: 'SUPERUSER'
+              - username: replicator
+                password: "secret_repli"
+                permissions: 'REPLICATION'
+
+      with_items:
+        - postgres_one
+      tags: provision_docker
+
+    - name: Group secondaries
+      add_host:
+        hostname: "{{item}}"
+        groups: secondary
+        <<: *common_vars
+        postgres_clusters:
+          - version: "{{ postgres_version }}"
+            name: 'main'
+            port: 5432
+            fsync_enabled: True
+            checksums: False
+            archive_enabled: True
+            barman_directory: "{{ postgres_barman_directory }}"
+            primary:
+              host: postgres_one
+              port: 5432
+              restore_directory: "{{ postgres_barman_directory }}"
+              replication_user: "replicator"
+              replication_password: "secret_repli"
+
+      with_items:
+        - postgres_two
+        - postgres_three
+      tags: provision_docker
+
+    - name: Group db-all
+      add_host:
+        hostname: "{{item}}"
+        groups: db-all
+      with_items:
+        - postgres_one
+        - postgres_two
+        - postgres_three
+      tags: provision_docker
+
+    - name: Group barman
+      add_host:
+        hostname: "{{item}}"
+        groups: barman
+        <<: *common_vars
+        barman_databases:
+          - name: "{{ postgres_barman_directory }}"
+            description: 'Main database'
+            primary_host: postgres_one
+            primary_barman_password: "secret_cocktail"
+            backup_method: rsync
+            ansible_group: db-all
+            retention_policy: 'RECOVERY WINDOW OF 7 DAYS'
+      with_items:
+        - postgres_barman
+      tags: provision_docker
+
+- name: Test installing Barman role
+  hosts: barman
+  connection: docker
+  vars: {}
+  pre_tasks: &pre_tasks
+     - name: "Build hosts file"
+       shell: 'echo "{{ hostvars[inventory_hostname].ansible_default_ipv4.address }} {{inventory_hostname}}" >> /etc/hosts'
+       when: hostvars[inventory_hostname].ansible_default_ipv4.address is defined
+
+     - debug: msg="Running on host {{inventory_hostname}} ({{ hostvars[inventory_hostname].ansible_default_ipv4.address }})"
+  roles:
+    - { role: barman, tags: ['barman'] }
+
+- name: Test installing Postgresql role
+  hosts: primary:secondary
+  connection: docker
+  vars:
+    postgres_listen_addresses: "{{ hostvars[inventory_hostname].ansible_default_ipv4.address }}"
+  pre_tasks: *pre_tasks
+  roles:
+    - { role: postgresql, tags: ['postgres'] }
+  tasks:
+    - name: Start postgres cluster
+      service: name=postgresql state=started
+
+    - name: Test connection to Postgres instances.
+      become: true
+      become_user: postgres
+      become_method: su
+      command: psql --port=5432 --command='select NOW()'
+
+
+- name: Test running Postgresql role when database is started
+  connection: docker
+  hosts: primary:secondary
+  vars:
+    postgres_listen_addresses: "{{ hostvars[inventory_hostname].ansible_default_ipv4.address }}"
+  pre_tasks: *pre_tasks
+  roles:
+    - { role: postgresql, tags: ['postgres'] }

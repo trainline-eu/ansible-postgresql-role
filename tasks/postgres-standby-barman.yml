@@ -1,0 +1,12 @@
+---
+- name: Copy secondary script
+  template: src=standby-clone.sh.j2 dest=/root/standby-clone-{{ postgres_version }}-{{ postgres_cluster_name }}.sh mode=0755
+
+- name: Copy rsync password file
+  copy:
+    content: "{{ barman_rsync_password }}"
+    dest: /var/lib/postgresql/.rsync_pass
+    owner: postgres
+    group: postgres
+    mode: 0400
+  no_log: True

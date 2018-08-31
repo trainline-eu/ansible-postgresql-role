@@ -1,0 +1,22 @@
+- name: Test if the PostgreSQL server is up
+  become: true
+  become_user: postgres
+  become_method: su
+  command: psql --port={{ postgres_port }} --command='select NOW()'
+  register: postgres_up
+  ignore_errors: yes
+  check_mode: no
+  changed_when: false
+
+- name: Create PostgreSQL user
+  become: true
+  become_user: postgres
+  become_method: su
+  postgresql_user:
+    port:             "{{ postgres_port }}"
+    name:             "{{ postgres_username }}"
+    password:         "{{ postgres_password }}"
+    encrypted:        true
+    role_attr_flags:  "{{ postgres_permissions }}"
+  when:
+    - postgres_up.rc == 0

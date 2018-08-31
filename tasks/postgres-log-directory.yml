@@ -1,0 +1,13 @@
+- name: Create dedicated log directory
+  file: path={{ postgres_log_dir }} state=directory
+
+- name: Check /var/log/postgresql
+  stat: path=/var/log/postgresql
+  register: var_log_postgresql
+
+- name: Move /var/log/postgresql directory if not a link
+  command: mv /var/log/postgresql /var/log/old-postgresql
+  when: var_log_postgresql.stat.isdir is defined and var_log_postgresql.stat.isdir
+
+- name: Create a symlink so regular log path points to dedicated log directory
+  file: src={{ postgres_log_dir }} dest=/var/log/postgresql state=link

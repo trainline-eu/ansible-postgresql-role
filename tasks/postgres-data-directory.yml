@@ -1,0 +1,10 @@
+- name: Create dedicated data directory
+  file: path={{ postgres_data_dir }} state=directory owner=postgres group=postgres
+
+- name: Check /var/lib/postgresql directory
+  stat: path=/var/lib/postgresql/
+  register: var_lib_postgresql
+
+- name: Create a symlink between regular data directory and dedicated one
+  file: src={{ postgres_data_dir }} dest=/var/lib/postgresql state=link
+  when: not var_lib_postgresql.stat.exists

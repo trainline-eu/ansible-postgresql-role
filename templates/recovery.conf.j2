@@ -1,0 +1,8 @@
+# This file is renamed to `recover.done` by postgres once the secondary is promoted
+# {{ ansible_managed }}
+
+standby_mode = 'on'
+restore_command = '/usr/bin/barman-wal-restore --user barman --parallel 8 {{ postgres_barman_server }} {{ postgres_primary.restore_directory }} %f %p'
+primary_conninfo = 'host={{ postgres_primary.host }} port={{ postgres_primary.port }} user={{ postgres_primary.replication_user }} password={{ postgres_primary.replication_password }} sslmode=require'
+trigger_file = '/var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/failover.trigger'
+recovery_target_timeline='latest'

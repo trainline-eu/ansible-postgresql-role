@@ -1,0 +1,16 @@
+{{ postgres_log_dir|default('/var/log/postgresql') }}/*.log
+{
+       daily
+       rotate 60
+       copytruncate
+       delaycompress
+       compress
+       notifempty
+       missingok
+       su root root
+{% if postgres_pgbadger_server is defined and postgres_pgbadger_server %}
+       lastaction
+          /root/scripts/pgBadger.sh
+       endscript
+{% endif -%}
+}

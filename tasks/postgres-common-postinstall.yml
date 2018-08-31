@@ -1,0 +1,46 @@
+- user: name=postgres append=yes groups=ssl-cert
+
+- name: Creates .ssh directory
+  file: path=/var/lib/postgresql/.ssh state=directory owner=postgres group=postgres mode=0700
+
+- name: Create postgres SSH key
+  command: ssh-keygen -b 4096 -f /var/lib/postgresql/.ssh/id_rsa -N "" -q
+  become: yes
+  become_user: postgres
+  become_method: su
+  args:
+    creates: /var/lib/postgresql/.ssh/id_rsa
+
+- slurp:
+    src: /var/lib/postgresql/.ssh/id_rsa.pub
+  register: db_server_pub_key
+
+- name: Allow SSH access on barman server
+  authorized_key:
+    user: "barman"
+    key: "{{ db_server_pub_key['content']|b64decode }}"
+    state: present
+  delegate_to: "{{ postgres_barman_server_public|default(postgres_barman_server) }}"
+  when: postgres_barman_server is defined
+
+- name: Copy logrotate configuration for postgresql
+  template: src=logrotate-postgresql-common.j2 dest=/etc/logrotate.d/postgresql-common owner=root group=root mode=0644
+
+- name: Create /root/scripts needed directory
+  file: path=/root/scripts/ state=directory
+
+- name: Create pgbadger user
+  user: name=pgbadger home=/home/pgbadger
+  when: postgres_pgbadger_server is defined and postgres_pgbadger_server
+
+- name: Copy pbBadger script
+  template: src=pgBadger.sh.j2 dest=/root/scripts/pgBadger.sh owner=root group=root mode=0755
+  when: postgres_pgbadger_server is defined and postgres_pgbadger_server
+
+- name: Ensure dedicated log directory is owned by postgres
+  file: path={{ postgres_log_dir }} state=directory owner=postgres group=postgres
+  when: postgres_log_dir is defined and postgres_log_dir
+
+- name: Ensure dedicated data directory is owned by postgres
+  file: path={{ postgres_data_dir }} state=directory owner=postgres group=postgres
+  when: postgres_data_dir is defined and postgres_data_dir

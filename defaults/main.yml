@@ -1,0 +1,18 @@
+---
+postgres_listen_addresses:
+  - '127.0.0.1'
+postgres_clusters: []
+# postgres_data_dir: ~
+# postgres_log_dir: ~
+# postgres_pgbadger_server: ~
+postgres_backup_enabled: false
+#------------------------------------------------------------#
+#------------ Postgresql Configuration defaults -------------#
+#- WARNING: defaults can change with major version upgrades -#
+postgres_log_line_prefix: '%m [%p] %q%u@%d '
+postgres_datestyle: 'iso, mdy'
+postgres_locale_system: C.UTF-8
+postgres_locale_formats: C.UTF-8
+postgres_text_search_config: pg_catalog.english
+#------------------------------------------------------------#
+

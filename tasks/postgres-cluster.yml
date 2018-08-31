@@ -1,0 +1,85 @@
+- name: Install postgresql version {{ postgres_version }}
+  apt: name=postgresql-{{ postgres_version }}
+  when: ansible_distribution_release != 'NA'
+
+- name: Install pg_repack version {{ postgres_version }}
+  apt: name=postgresql-{{ postgres_version }}-repack
+  when:
+   - ansible_distribution_release != 'NA'
+   - postgres_version in ['9.3', '9.4', '9.5', '9.6', '10']
+
+- name: Set initdb options
+  set_fact: postgres_initdb_option="{% if postgres_checksums %}--data-checksums{% endif %}"
+
+- name: Create postgres cluster {{ postgres_version }}/{{ postgres_cluster_name }} if needed
+  command: /usr/bin/pg_createcluster {{ postgres_version }} {{ postgres_cluster_name }} -- {{ postgres_initdb_option }}
+  args:
+    creates: /var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/
+
+- name: Check postgres server key
+  stat: path=/var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/server.key
+  register: server_key
+
+- name: Copy snakeoil key in postgres dir
+  copy:
+    src=/etc/ssl/private/ssl-cert-snakeoil.key
+    dest=/var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/server.key
+    remote_src=true
+    owner=postgres
+    group=postgres
+    mode="0600"
+  when: not server_key.stat.exists or server_key.stat.islnk
+
+- name: Check postgres server certificate
+  stat: path=/var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/server.crt
+  register: server_crt
+
+- name: Copy snakeoil certificate in postgres dir
+  copy:
+    src=/etc/ssl/certs/ssl-cert-snakeoil.pem
+    dest=/var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/server.crt
+    remote_src=true
+    owner=postgres
+    group=postgres
+    mode="0644"
+  when: not server_crt.stat.exists or server_crt.stat.islnk
+
+- name: Add standby clone from barman script
+  include: postgres-standby-barman.yml
+  when: postgres_barman_server is defined
+
+- name: Determine SSD or rotational disks
+  raw: 'lsblk --noheadings --nodeps --raw --output=rota | grep -q 1'
+  check_mode: no
+  ignore_errors: yes
+  register: rotational_disk
+
+- name: Set specific random page cost for SSDs
+  set_fact:
+    postgres_specific_random_page_cost: "1.0"
+  when:
+    - rotational_disk.failed is defined
+    - rotational_disk.failed
+
+- name: Upload postgresql.conf
+  template: src=postgresql.{{ postgres_version }}.conf.j2 dest=/etc/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/postgresql.conf
+
+- name: Upload pg_hba.conf
+  template: src=pg_hba.conf.j2 dest=/etc/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/pg_hba.conf
+
+- name: Upload recovery.conf
+  template: src=recovery.conf.j2 dest=/var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/recovery.conf owner=postgres group=postgres mode=0600
+  when: postgres_primary
+  no_log: True
+
+- name: Create log file
+  file:
+    path={{ postgres_log_dir }}/postgresql-{{ postgres_version }}-{{ postgres_cluster_name }}.log
+    state=touch
+    owner=postgres
+    group=adm
+  when: postgres_log_dir is defined and postgres_log_dir
+
+- name: Create log symlink for pg_lsclusters
+  file: dest=/etc/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/log src={{ postgres_log_dir }}/postgresql-{{ postgres_version }}-{{ postgres_cluster_name }}.log state=link
+  when: postgres_log_dir is defined and postgres_log_dir

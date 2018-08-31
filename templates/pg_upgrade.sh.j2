@@ -1,0 +1,175 @@
+#!/bin/bash -ex
+# {{ ansible_managed }}
+#
+# WARNING: Please read both the documentation and this script if you want to run it
+# Authors:
+# - Théophile Helleboid
+# - Paul Bonaud
+# Description:
+#   This helper tries to strictly follow the official documentation of PostgreSQL
+#   from the pg_upgrade page: https://www.postgresql.org/docs/9.5/static/pgupgrade.html
+# Usage:
+#   WARNING: Please read both the documentation and this script if you want to run it
+#   1. edit this file and remove the "DRY_RUN=1" line
+#   2. execute this script as the postgres admin user
+
+{% if postgres_pgbouncer_uri is defined and postgres_pgbouncer_uri %}
+PGBOUNCER_PG_URI={{ postgres_pgbouncer_uri }}
+{% endif %}
+DATABASE_NAME={{ postgres_dbname }}
+DATABASE_PORT={{ postgres_new_cluster_port }}
+
+OLD_CLUSTER_VERSION={{ postgres_old_cluster_version }}
+OLD_CLUSTER_NAME={{ postgres_old_cluster_name }}
+OLD_CLUSTER_DATADIR=/var/lib/postgresql/$OLD_CLUSTER_VERSION/$OLD_CLUSTER_NAME
+NEW_CLUSTER_VERSION={{ postgres_new_cluster_version }}
+NEW_CLUSTER_NAME={{ postgres_new_cluster_name }}
+NEW_CLUSTER_DATADIR=/var/lib/postgresql/$NEW_CLUSTER_VERSION/$NEW_CLUSTER_NAME
+
+STANDBY_SERVER={{ postgres_standby_server }}
+STANDBY_OLD_CLUSTER_NAME={{ postgres_standby_old_cluster_name }}
+STANDBY_OLD_CLUSTER_DATADIR=/var/lib/postgresql/$OLD_CLUSTER_VERSION/$STANDBY_OLD_CLUSTER_NAME
+STANDBY_NEW_CLUSTER_NAME={{ postgres_standby_new_cluster_name }}
+STANDBY_NEW_CLUSTER_DATADIR=/var/lib/postgresql/$NEW_CLUSTER_VERSION/$STANDBY_NEW_CLUSTER_NAME
+
+DRY_RUN=1
+
+if [ "$(whoami)" != "postgres" ]; then
+    echo "ERROR: you must run this script as the 'postgres' admin local user"
+    exit 1
+fi
+
+{% if postgres_pgbouncer_uri is defined and postgres_pgbouncer_uri %}
+# Test the configuration is correcly deployed on pgbouncer
+psql $PGBOUNCER_PG_URI --command 'show databases;'  | grep "^ $DATABASE_NAME "
+# Test connection to pgbouncer is OK
+psql $PGBOUNCER_PG_URI --command 'show pools;'
+{% endif %}
+
+if [ ! -f /usr/lib/postgresql/$NEW_CLUSTER_VERSION/bin/pg_upgrade ]; then
+    echo "ERROR: /usr/lib/postgresql/$NEW_CLUSTER_VERSION/bin/pg_upgrade is not available on this machine."
+    exit 1
+fi
+# We need ssh access to the standby server
+ssh $STANDBY_SERVER "ls -A $STANDBY_OLD_CLUSTER_DATADIR 2>&1>/dev/null"
+ssh $STANDBY_SERVER "ls -A $STANDBY_NEW_CLUSTER_DATADIR 2>&1>/dev/null"
+if [ ! -d $OLD_CLUSTER_DATADIR ] || [ ! -d $NEW_CLUSTER_DATADIR ]; then
+    echo "ERROR: Make sure both old cluster and new cluster data dirs exists"
+    echo "ERROR: on both primary and standby servers ($STANDBY_SERVER)."
+    echo "ERROR: old_cluster datadir: $OLD_CLUSTER_DATADIR"
+    echo "ERROR: new_cluster datadir: $NEW_CLUSTER_DATADIR"
+    #exit 1
+fi
+
+echo "WARNING: You are about to:"
+{% if postgres_pgbouncer_uri is defined and postgres_pgbouncer_uri %}
+echo "WARNING: * PAUSE connections to $DATABASE_NAME database."
+{% endif %}
+echo "WARNING: * STOP the primary database in $OLD_CLUSTER_VERSION version (and standbys)"
+echo "WARNING: * dry-run the pg_upgrade from $OLD_CLUSTER_VERSION to $NEW_CLUSTER_VERSION"
+echo "WARNING: * run the pg_upgrade in place with hardlinks"
+echo "WARNING: * START the primary database in $NEW_CLUSTER_VERSION version (and standbys)"
+{% if postgres_pgbouncer_uri is defined and postgres_pgbouncer_uri %}
+echo "WARNING: * RESUME connections to $DATABASE_NAME."
+{% endif %}
+echo "================"
+read -p "Are you sure? (y/n)" -n 1 -r
+echo "================"
+if [[ -z $DRY_RUN ]] && [[ $REPLY =~ ^[Yy]$ ]]; then
+    {% if postgres_pgbouncer_uri is defined and postgres_pgbouncer_uri %}
+    # Pause the databases;
+    psql $PGBOUNCER_PG_URI --command "PAUSE $DATABASE_NAME;"
+    {% endif %}
+
+    # Stop the $OLD_CLUSTER_VERSION server
+    pg_ctlcluster $OLD_CLUSTER_VERSION $OLD_CLUSTER_NAME stop -m fast
+
+    # Get latest checkpoint location of primary
+    echo "INFO: Primary PG controldata with latest checkpoint location"
+    /usr/lib/postgresql/$OLD_CLUSTER_VERSION/bin/pg_controldata $OLD_CLUSTER_DATADIR | head -n8
+
+    # Wait for standbys to catch up latest checkpoint
+    # TODO: how long to wait?
+    echo "Waiting for 9 seconds..."
+    sleep 9
+    echo "INFO: Standby PG controldata with latest checkpoint location (after shutdown)"
+    ssh $STANDBY_SERVER pg_ctlcluster $OLD_CLUSTER_VERSION $STANDBY_OLD_CLUSTER_NAME stop -m fast
+    ssh $STANDBY_SERVER /usr/lib/postgresql/$OLD_CLUSTER_VERSION/bin/pg_controldata $STANDBY_OLD_CLUSTER_DATADIR | head -n8
+
+    echo "WARNING: 'Latest Checkpoint location' values should match on primary and on standby"
+    echo "================"
+    read -p "Do they match? PLEASE ANSWER (y/n)" -n 1 -r
+    echo "================"
+
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        # Test to upgrade the data
+        time /usr/lib/postgresql/$NEW_CLUSTER_VERSION/bin/pg_upgrade --check --link        \
+             -b /usr/lib/postgresql/$OLD_CLUSTER_VERSION/bin                                \
+             -B /usr/lib/postgresql/$NEW_CLUSTER_VERSION/bin                                \
+             -d $OLD_CLUSTER_DATADIR                  \
+             -D $NEW_CLUSTER_DATADIR                  \
+             -o " -c config_file=/etc/postgresql/$OLD_CLUSTER_VERSION/$OLD_CLUSTER_NAME/postgresql.conf" \
+             -O " -c config_file=/etc/postgresql/$NEW_CLUSTER_VERSION/$NEW_CLUSTER_NAME/postgresql.conf"
+
+        # Really upgrade the data
+        time /usr/lib/postgresql/$NEW_CLUSTER_VERSION/bin/pg_upgrade         --link        \
+             -b /usr/lib/postgresql/$OLD_CLUSTER_VERSION/bin                                \
+             -B /usr/lib/postgresql/$NEW_CLUSTER_VERSION/bin                                \
+             -d $OLD_CLUSTER_DATADIR                  \
+             -D $NEW_CLUSTER_DATADIR                  \
+             -o " -c config_file=/etc/postgresql/$OLD_CLUSTER_VERSION/$OLD_CLUSTER_NAME/postgresql.conf" \
+             -O " -c config_file=/etc/postgresql/$NEW_CLUSTER_VERSION/$NEW_CLUSTER_NAME/postgresql.conf"
+
+        ## Upgrade standby server
+
+        ### Making sure new datadir is empty
+        if [ -z "$(ssh $STANDBY_SERVER ls -A $STANDBY_NEW_CLUSTER_DATADIR)" ]; then
+            echo "INFO: New cluster datadir is empty on standby server. Good."
+        else
+            echo "WARNING: New cluster datadir is NOT empty on standby server. Deleting the content of $STANDBY_NEW_CLUSTER_DATADIR on $STANDBY_SERVER now..."
+            ssh $STANDBY_SERVER rm -rf $STANDBY_NEW_CLUSTER_DATADIR
+        fi
+
+        ### Save configuration files
+        TMPDIR=$(ssh $STANDBY_SERVER mktemp -d -t pg_upgrade_XXXX)
+        ssh $STANDBY_SERVER mv $STANDBY_OLD_CLUSTER_DATADIR/recovery.conf $TMPDIR
+
+        ### Upgrade (via rsync)
+        rsync --archive --delete --hard-links --size-only --no-inc-recursive $OLD_CLUSTER_DATADIR $NEW_CLUSTER_DATADIR $STANDBY_SERVER:$(dirname $STANDBY_NEW_CLUSTER_DATADIR)
+
+        ### Restore saved configured files
+        ssh $STANDBY_SERVER mv $TMPDIR/recovery.conf $STANDBY_NEW_CLUSTER_DATADIR/
+        ssh $STANDBY_SERVER rm -rf $TMPDIR
+
+        # Start the $NEW_CLUSTER_VERSION primary server
+        pg_ctlcluster $NEW_CLUSTER_VERSION $NEW_CLUSTER_NAME start
+
+        # Test local primary is accepting connections
+        psql --port=$DATABASE_PORT --dbname=$DATABASE_NAME --command="SELECT NOW();"
+
+        {% if postgres_pgbouncer_uri is defined and postgres_pgbouncer_uri %}
+        # Resume the connexions
+        psql $PGBOUNCER_PG_URI --command "RESUME $DATABASE_NAME;"
+        {% endif %}
+
+        # Start the $NEW_CLUSTER_VERSION standby server
+        ssh $STANDBY_SERVER pg_ctlcluster $NEW_CLUSTER_VERSION $STANDBY_NEW_CLUSTER_NAME start
+
+        echo "DONE. Upgrade of PG cluster from $OLD_CLUSTER_VERSION/$OLD_CLUSTER_NAME to $NEW_CLUSTER_VESION/$NEW_CLUSTER_NAME is finished! Well done!"
+    else
+        # Start the $OLD_CLUSTER_VERSION primary server
+        pg_ctlcluster $OLD_CLUSTER_VERSION $OLD_CLUSTER_NAME start
+        # Start the $OLD_CLUSTER_VERSION standby server
+        ssh $STANDBY_SERVER pg_ctlcluster $OLD_CLUSTER_VERSION $OLD_CLUSTER_NAME start
+
+        # Test local primary is accepting connections
+        psql --dbname=$DATABASE_NAME --command="SELECT NOW();"
+
+        {% if postgres_pgbouncer_uri is defined and postgres_pgbouncer_uri %}
+        # Resume the connexions
+        psql $PGBOUNCER_PG_URI --command "RESUME $DATABASE_NAME;"
+        {% endif %}
+    fi
+else
+    echo "INFO: You didn't want to continue or was in 'dry-run' mode"
+fi

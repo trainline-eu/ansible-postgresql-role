@@ -1,0 +1,80 @@
+---
+- include: postgres-common-preinstall.yml
+  tags:
+    - postgres
+
+- include: postgres-log-directory.yml
+  tags:
+    - postgres
+  when:
+   - postgres_log_dir is defined and postgres_log_dir
+
+- include: postgres-data-directory.yml
+  tags:
+    - postgres
+  when: postgres_data_dir is defined and postgres_data_dir
+
+- name: fail if no clusters are defined
+  fail:
+    msg: "You probably forgot to define a PostgreSQL cluster on your host (`postgres_clusters` variable). Stopping run of the PostgreSQL role."
+  when: (postgres_clusters is not defined) or (postgres_clusters|length == 0)
+
+- include: postgres-cluster.yml
+    postgres_version={{ item.version }}
+    postgres_cluster_name={{ item.name }}
+    postgres_port={{ item.port }}
+    postgres_fsync_enabled={{ item.fsync_enabled }}
+    postgres_archive_enabled={{ item.archive_enabled }}
+    postgres_max_replication_slots={{ item.max_replication_slots | default(10) }}
+    postgres_extra_config={{ item.extra_config | default({}) }}
+    barman_directory={{ item.barman_directory | default(None) }}
+    postgres_primary={{ item.primary | default(None) }}
+    postgres_checksums={{ item.checksums | default(True) }}
+  with_items: "{{ postgres_clusters }}"
+  tags:
+    - postgres
+
+- include: postgres-common-postinstall.yml
+  tags:
+    - postgres
+
+- include: postgres-user.yml
+    postgres_username={{ item.1.username }}
+    postgres_password={{ item.1.password }}
+    postgres_port={{ item.0.port }}
+    postgres_permissions={{ item.1.permissions | default('') }}
+  with_subelements:
+    - "{{ postgres_clusters }}"
+    - users
+    - skip_missing: true
+  tags:
+    - postgres
+    - postgres-users
+
+- include: postgres-database.yml
+    postgres_dbname={{ item.1.dbname }}
+    postgres_owner={{ item.1.owner }}
+    postgres_port={{ item.0.port }}
+  with_subelements:
+    - "{{ postgres_clusters }}"
+    - databases
+    - skip_missing: true
+  tags:
+    - postgres
+    - postgres-databases
+
+- include: postgres-pgupgrades.yml
+    postgres_dbname={{ item.dbname }}
+    postgres_pgbouncer_uri={{ item.pgbouncer_uri|default(None) }}
+    postgres_old_cluster_version={{ item.old_cluster_version }}
+    postgres_old_cluster_name={{ item.old_cluster_name }}
+    postgres_new_cluster_version={{ item.new_cluster_version }}
+    postgres_new_cluster_name={{ item.new_cluster_name }}
+    postgres_standby_server={{ item.standby_server }}
+    postgres_standby_old_cluster_name={{ item.standby_old_cluster_name|default(item.old_cluster_name) }}
+    postgres_standby_new_cluster_name={{ item.standby_new_cluster_name|default(item.new_cluster_name) }}
+  with_items: "{{ postgres_pgupgrades }}"
+  when: postgres_pgupgrades is defined
+  tags:
+    - postgres
+    - postgres-pgupgrades

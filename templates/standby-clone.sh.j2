@@ -1,0 +1,44 @@
+#!/bin/bash
+# {{ ansible_managed }}
+
+BARMAN_DATABASE=$1
+BARMAN_BACKUP_VERSION=$2
+
+if [[ -z $BARMAN_DATABASE || -z $BARMAN_BACKUP_VERSION ]]
+then
+  echo "Usage : $0 BARMAN_DATABASE BARMAN_BACKUP_VERSION" >&2
+  echo "  Example: $0 25kv 20161118T002405" >&2
+  exit 1
+fi
+
+BACKUP_DATE=`date +%s`
+
+echo "accept key if necessary"
+sudo -u postgres ssh barman@{{ postgres_barman_server }} echo ""
+
+echo Stopping PostgreSQL
+pg_ctlcluster {{ postgres_version }} {{ postgres_cluster_name }} stop
+
+echo Cleaning up old cluster directory
+sudo -u postgres mv /var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}{,_$BACKUP_DATE}
+
+echo Creating new directory
+sudo -u postgres mkdir -p /var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}
+
+echo Get previous backup from backups server
+sudo -u postgres \
+  time rsync --progress -pvia --exclude='*.conf' --exclude='server.crt' --exclude='server.key' --delete \
+  --password-file=/var/lib/postgresql/.rsync_pass \
+  rsync://barman@{{ postgres_barman_server }}/backups/$BARMAN_DATABASE/base/$BARMAN_BACKUP_VERSION/data/ \
+  /var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/
+
+echo Restoring .conf and server certificate
+sudo -u postgres cp -a /var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}_$BACKUP_DATE/{*.conf,server.crt,server.key} /var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/
+
+echo Ensure rights are correcly set
+chown -R postgres:postgres /var/lib/postgresql/{{ postgres_version }}/
+chmod 0700 /var/lib/postgresql/{{ postgres_version }}/
+chmod -R o-rwx /var/lib/postgresql/{{ postgres_version }}/
+
+echo Starting PostgreSQL
+sudo pg_ctlcluster {{ postgres_version }} {{ postgres_cluster_name }} start
