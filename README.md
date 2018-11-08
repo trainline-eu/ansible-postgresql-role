@@ -9,7 +9,7 @@ This role has been tested on Ansible 2.3.0 and higher.
 To install:
 
 ```
-ansible-galaxy install trainline-eu.postgresql
+ansible-galaxy install trainline-eu.ansible_postgresql_role
 ```
 
 
@@ -18,7 +18,7 @@ ansible-galaxy install trainline-eu.postgresql
 No dependencies
 
 Recommended dependencies:
-- trainline-eu.barman
+- trainline-eu.ansible_barman_role
 
 #### Compatibility matrix
 
