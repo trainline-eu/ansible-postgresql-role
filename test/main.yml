@@ -2,8 +2,8 @@
 - name: Bring up docker containers
   hosts: localhost
   vars: &common_vars
-    postgres_version: 10
-    postgres_barman_directory: 'test-postgres-10'
+    postgres_version: 11
+    postgres_barman_directory: 'test-postgres-11'
     postgres_barman_server: postgres_barman
     barman_rsync_password: "secret_rsync"
     barman_rsync_allowed_hosts: 172.17.0.0/24

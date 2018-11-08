@@ -6,7 +6,7 @@
   apt: name=postgresql-{{ postgres_version }}-repack
   when:
    - ansible_distribution_release != 'NA'
-   - postgres_version in ['9.3', '9.4', '9.5', '9.6', '10']
+   - postgres_version in ['9.3', '9.4', '9.5', '9.6', '10', '11']
 
 - name: Set initdb options
   set_fact: postgres_initdb_option="{% if postgres_checksums %}--data-checksums{% endif %}"
