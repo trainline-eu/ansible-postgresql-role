@@ -1,0 +1,3 @@
+test/main.retry
+test/roles/*
+!test/roles/ansible-postgresql-role
