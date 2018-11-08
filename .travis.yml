@@ -16,10 +16,11 @@ install:
   - pip install ansible
   # Check ansible version
   - ansible --version
+  - ansible-galaxy install -r test/requirements.yml -p test/roles/
 
 script:
   # Basic role syntax check
-  - ansible-playbook test/main.yml -i test --syntax-check
+  - ansible-playbook test/main.yml -i test/hosts --syntax-check
 
 notifications:
   webhooks: https://galaxy.ansible.com/api/v1/notifications/

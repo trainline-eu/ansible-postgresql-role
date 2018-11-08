@@ -132,7 +132,7 @@
     postgres_listen_addresses: "{{ hostvars[inventory_hostname].ansible_default_ipv4.address }}"
   pre_tasks: *pre_tasks
   roles:
-    - { role: postgresql, tags: ['postgres'] }
+    - { role: ansible-postgresql-role, tags: ['postgres'] }
   tasks:
     - name: Start postgres cluster
       service: name=postgresql state=started
@@ -151,4 +151,4 @@
     postgres_listen_addresses: "{{ hostvars[inventory_hostname].ansible_default_ipv4.address }}"
   pre_tasks: *pre_tasks
   roles:
-    - { role: postgresql, tags: ['postgres'] }
+    - { role: ansible-postgresql-role, tags: ['postgres'] }
