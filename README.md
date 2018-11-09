@@ -1,6 +1,8 @@
-## PostgreSQL Ansible role [![Build Status](https://travis-ci.org/trainline-eu/postgresql.svg?branch=master)](https://travis-ci.org/trainline-eu/postgresql)
+## PostgreSQL Ansible role [![Build Status](https://travis-ci.org/trainline-eu/ansible-postgresql-role.svg?branch=master)](https://travis-ci.org/trainline-eu/ansible-postgresql-role)
 
 Ansible role which installs and configures PostgreSQL clusters, databases and users.
+
+See [role page on Ansible Galaxy](https://galaxy.ansible.com/trainline-eu/ansible_postgresql_role).
 
 #### Installation
 
@@ -18,7 +20,7 @@ ansible-galaxy install trainline-eu.ansible_postgresql_role
 No dependencies
 
 Recommended dependencies:
-- trainline-eu.ansible_barman_role
+- [trainline-eu.ansible_barman_role](https://galaxy.ansible.com/trainline-eu/ansible_barman_role)
 
 #### Compatibility matrix
 
