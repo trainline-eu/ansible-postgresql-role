@@ -26,8 +26,8 @@ This table lists the tested version of OS/PostgreSQL couples.
 
 | Distribution / PostgreSQL | 9.1 | 9.4 | 9.5 | 9.6 | 10  | 11  |
 | ------------------------- |:---:|:---:|:---:|:---:|:---:|:---:|
-| Debian 8.x | :no_entry: :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:| :grey_question:|
-| Debian 9.x | :no_entry: :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:| :grey_question:|
+| Debian 8.x | :no_entry: :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:|
+| Debian 9.x | :no_entry: :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:|
 
 - :white_check_mark: - tested, works fine
 - :grey_question: - will work in the future (help out if you can)
@@ -43,7 +43,7 @@ postgres_listen_addresses: [ '127.0.0.1' ] # Optional
 postgres_log_dir: '/home/postgres-logs'    # Optional
 postgres_data_dir: '/home/postgres'        # Optional
 postgres_clusters:                         # Mandatory
-  - version: 10                              # Mandatory
+  - version: 11                              # Mandatory
     name: 'main'                             # Mandatory
     port: 5432                               # Mandatory
     checksums: True                          # Optional
