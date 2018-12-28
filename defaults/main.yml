@@ -6,6 +6,7 @@ postgres_clusters: []
 # postgres_log_dir: ~
 # postgres_pgbadger_server: ~
 postgres_backup_enabled: false
+postgres_barman_rsync_enabled: false
 #------------------------------------------------------------#
 #------------ Postgresql Configuration defaults -------------#
 #- WARNING: defaults can change with major version upgrades -#

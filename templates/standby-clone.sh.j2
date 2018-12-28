@@ -1,6 +1,8 @@
 #!/bin/bash
 # {{ ansible_managed }}
 
+set -eo pipefail
+
 BARMAN_DATABASE=$1
 BARMAN_BACKUP_VERSION=$2
 
@@ -17,7 +19,7 @@ echo "accept key if necessary"
 sudo -u postgres ssh barman@{{ postgres_barman_server }} echo ""
 
 echo Stopping PostgreSQL
-pg_ctlcluster {{ postgres_version }} {{ postgres_cluster_name }} stop
+pg_ctlcluster {{ postgres_version }} {{ postgres_cluster_name }} stop || true
 
 echo Cleaning up old cluster directory
 sudo -u postgres mv /var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}{,_$BACKUP_DATE}
@@ -28,8 +30,10 @@ sudo -u postgres mkdir -p /var/lib/postgresql/{{ postgres_version }}/{{ postgres
 echo Get previous backup from backups server
 sudo -u postgres \
   time rsync --progress -pvia --exclude='*.conf' --exclude='server.crt' --exclude='server.key' --delete \
+{% if postgres_barman_rsync_enabled|default(false) -%}
   --password-file=/var/lib/postgresql/.rsync_pass \
-  rsync://barman@{{ postgres_barman_server }}/backups/$BARMAN_DATABASE/base/$BARMAN_BACKUP_VERSION/data/ \
+{%- endif %}
+  {% if postgres_barman_rsync_enabled|default(false) -%}rsync://{%- endif -%}barman@{{ postgres_barman_server }}{%- if postgres_barman_rsync_enabled|default(false) -%}/backups{%- else -%}:~{%- endif -%}/$BARMAN_DATABASE/base/$BARMAN_BACKUP_VERSION/data/ \
   /var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/
 
 echo Restoring .conf and server certificate
