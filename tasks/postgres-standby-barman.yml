@@ -10,3 +10,4 @@
     group: postgres
     mode: 0400
   no_log: True
+  when: postgres_barman_rsync_enabled
