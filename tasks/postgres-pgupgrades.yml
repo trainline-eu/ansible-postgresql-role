@@ -1,7 +1,18 @@
 ---
+- set_fact:
+    postgres_dbname: "{{ postgres_pgupgrade.dbname }}"
+    postgres_pgbouncer_uri: "{{ postgres_pgupgrade.pgbouncer_uri|default(None) }}"
+    postgres_old_cluster_version: "{{ postgres_pgupgrade.old_cluster_version }}"
+    postgres_old_cluster_name: "{{ postgres_pgupgrade.old_cluster_name }}"
+    postgres_new_cluster_version: "{{ postgres_pgupgrade.new_cluster_version }}"
+    postgres_new_cluster_name: "{{ postgres_pgupgrade.new_cluster_name }}"
+    postgres_standby_server: "{{ postgres_pgupgrade.standby_server }}"
+    postgres_standby_old_cluster_name: "{{ postgres_pgupgrade.standby_old_cluster_name|default(postgres_pgupgrade.old_cluster_name) }}"
+    postgres_standby_new_cluster_name: "{{ postgres_pgupgrade.standby_new_cluster_name|default(postgres_pgupgrade.new_cluster_name) }}"
+
 - name: Find matching new cluster
   set_fact:
-    postgres_new_cluster: "{{ postgres_clusters|selectattr('name','equalto',postgres_new_cluster_name)|selectattr('version','equalto',postgres_new_cluster_version|float)|list|first }}"
+    postgres_new_cluster: "{{ postgres_clusters|selectattr('name','equalto',postgres_new_cluster_name)|selectattr('version','equalto', postgres_new_cluster_version|float)|list|first }}"
 
 - name: Extract database port of new matching cluster
   set_fact:
