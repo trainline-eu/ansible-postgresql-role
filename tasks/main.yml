@@ -20,17 +20,9 @@
   when: (postgres_clusters is not defined) or (postgres_clusters|length == 0)
 
 - include: postgres-cluster.yml
-    postgres_version={{ item.version }}
-    postgres_cluster_name={{ item.name }}
-    postgres_port={{ item.port }}
-    postgres_fsync_enabled={{ item.fsync_enabled }}
-    postgres_archive_enabled={{ item.archive_enabled }}
-    postgres_max_replication_slots={{ item.max_replication_slots | default(10) }}
-    postgres_extra_config={{ item.extra_config | default({}) }}
-    barman_directory={{ item.barman_directory | default(None) }}
-    postgres_primary={{ item.primary | default(None) }}
-    postgres_checksums={{ item.checksums | default(True) }}
-  with_items: "{{ postgres_clusters }}"
+  loop: "{{ postgres_clusters }}"
+  loop_control:
+    loop_var: postgres_cluster
   tags:
     - postgres
 
@@ -64,16 +56,9 @@
     - postgres-databases
 
 - include: postgres-pgupgrades.yml
-    postgres_dbname={{ item.dbname }}
-    postgres_pgbouncer_uri={{ item.pgbouncer_uri|default(None) }}
-    postgres_old_cluster_version={{ item.old_cluster_version }}
-    postgres_old_cluster_name={{ item.old_cluster_name }}
-    postgres_new_cluster_version={{ item.new_cluster_version }}
-    postgres_new_cluster_name={{ item.new_cluster_name }}
-    postgres_standby_server={{ item.standby_server }}
-    postgres_standby_old_cluster_name={{ item.standby_old_cluster_name|default(item.old_cluster_name) }}
-    postgres_standby_new_cluster_name={{ item.standby_new_cluster_name|default(item.new_cluster_name) }}
-  with_items: "{{ postgres_pgupgrades }}"
+  loop: "{{ postgres_pgupgrades }}"
+  loop_control:
+    loop_var: postgres_pgupgrade
   when: postgres_pgupgrades is defined
   tags:
     - postgres
