@@ -1,0 +1,23 @@
+---
+- name: "Install required packages for 'postgres_ext' ansible module"
+  apt:
+    name:
+      - libpq-dev
+      - python-psycopg2
+
+- name: Install system dependencies of extensions
+  apt:
+    name: "{{ postgres_extension.apt_deps | default([]) }}"
+    cache_valid_time: 86400
+
+- name: "CREATE EXTENSION on database {{ postgres_dbname }}"
+  become: true
+  become_user: postgres
+  become_method: su
+  postgresql_ext:
+    name: "{{ postgres_extension_name }}"
+    db: "{{ postgres_dbname }}"
+    port: "{{ postgres_port }}"
+  loop: "{{ postgres_extension.names | default([]) }}"
+  loop_control:
+    loop_var: postgres_extension_name

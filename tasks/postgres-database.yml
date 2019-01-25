@@ -18,3 +18,10 @@
     owner:            "{{ postgres_owner }}"
   when:
     - postgres_up.rc == 0
+
+- name: Create database extensions
+  include_tasks: postgres-database-extensions.yml
+  loop: "{{ postgres_extensions| default([]) }}"
+  loop_control:
+    loop_var: postgres_extension
+  when: postgres_up.rc == 0
