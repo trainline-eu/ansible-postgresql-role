@@ -49,12 +49,25 @@
             archive_enabled: True
             barman_directory: "{{ postgres_barman_directory }}"
             users:
+              - username: tester
+                password: tester
               - username: barman
                 password: "secret_cocktail"
                 permissions: 'SUPERUSER'
               - username: replicator
                 password: "secret_repli"
                 permissions: 'REPLICATION'
+            databases:
+              - dbname: test_database
+                owner: tester
+                extensions:
+                  - description: PostGis
+                    apt_deps:
+                      - "postgresql-{{ postgres_version }}-postgis"
+                    names:
+                      - postgis
+                      - postgis_topology
+                      - btree_gist
 
       with_items:
         - postgres_one

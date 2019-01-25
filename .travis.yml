@@ -13,7 +13,7 @@ addons:
 
 install:
   # Install ansible
-  - pip install ansible
+  - pip install ansible docker-py docker
   # Check ansible version
   - ansible --version
   - ansible-galaxy install -r test/requirements.yml -p test/roles/
@@ -21,6 +21,8 @@ install:
 script:
   # Basic role syntax check
   - ansible-playbook test/main.yml -i test/hosts --syntax-check
+  # Run the tests
+  - ansible-playbook test/main.yml -i test/hosts
 
 notifications:
   webhooks: https://galaxy.ansible.com/api/v1/notifications/
