@@ -11,6 +11,10 @@ addons:
     packages:
     - python-pip
 
+# Tests are using docker to spawn fake instances
+services:
+  - docker
+
 install:
   # Install ansible
   - pip install ansible docker-py docker
@@ -22,7 +26,10 @@ script:
   # Basic role syntax check
   - ansible-playbook test/main.yml -i test/hosts --syntax-check
   # Run the tests
-  - ansible-playbook test/main.yml -i test/hosts
+  # FAILS - ansible-playbook test/main.yml -i test/hosts
+  # Even if Docker and docker-py module are present, the tests fail on Travis
+  # The error on Travis is:
+  # => {"changed": false, "item": {"image": "python:3.7-stretch", "links": ["postgres_barman", "postgres_one"], "name": "postgres_three"}, "msg": "Failed to import docker or docker-py - No module named docker. Try `pip install docker` or `pip install docker-py` (Python 2.6)"}
 
 notifications:
   webhooks: https://galaxy.ansible.com/api/v1/notifications/

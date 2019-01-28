@@ -117,33 +117,25 @@
           - name: "{{ postgres_barman_directory }}"
             description: 'Main database'
             primary_host: postgres_one
-            primary_barman_password: "secret_cocktail"
+            postgres_barman_password: "secret_cocktail"
             backup_method: rsync
-            ansible_group: db-all
+            standby_hosts: "{{ groups['db-all'][1:] }}"
             retention_policy: 'RECOVERY WINDOW OF 7 DAYS'
       with_items:
         - postgres_barman
       tags: provision_docker
-
-- name: Test installing Barman role
-  hosts: barman
-  connection: docker
-  vars: {}
-  pre_tasks: &pre_tasks
-     - name: "Build hosts file"
-       shell: 'echo "{{ hostvars[inventory_hostname].ansible_default_ipv4.address }} {{inventory_hostname}}" >> /etc/hosts'
-       when: hostvars[inventory_hostname].ansible_default_ipv4.address is defined
-
-     - debug: msg="Running on host {{inventory_hostname}} ({{ hostvars[inventory_hostname].ansible_default_ipv4.address }})"
-  roles:
-    - { role: barman, tags: ['barman'] }
 
 - name: Test installing Postgresql role
   hosts: primary:secondary
   connection: docker
   vars:
     postgres_listen_addresses: "{{ hostvars[inventory_hostname].ansible_default_ipv4.address }}"
-  pre_tasks: *pre_tasks
+  pre_tasks: &pre_tasks
+     - name: "Build hosts file"
+       shell: 'echo "{{ hostvars[inventory_hostname].ansible_default_ipv4.address }} {{inventory_hostname}}" >> /etc/hosts'
+       when: hostvars[inventory_hostname].ansible_default_ipv4.address is defined
+
+     - debug: msg="Running on host {{inventory_hostname}} ({{ hostvars[inventory_hostname].ansible_default_ipv4.address }})"
   roles:
     - { role: ansible-postgresql-role, tags: ['postgres'] }
   tasks:
@@ -156,6 +148,14 @@
       become_method: su
       command: psql --port=5432 --command='select NOW()'
 
+
+- name: Test installing Barman role
+  hosts: barman
+  connection: docker
+  vars: {}
+  pre_tasks: *pre_tasks
+  roles:
+    - { role: barman, tags: ['barman'] }
 
 - name: Test running Postgresql role when database is started
   connection: docker

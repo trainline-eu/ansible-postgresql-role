@@ -3,4 +3,4 @@
   version: 7a6243dfcf69f9d262877eca487bc14b62ba6960
 - src: trainline-eu.ansible_barman_role
   name: barman
-  version: 1.0.0
+  version: 1.1.0
