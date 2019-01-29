@@ -14,7 +14,6 @@ To install:
 ansible-galaxy install trainline-eu.ansible_postgresql_role
 ```
 
-
 #### Dependencies
 
 No dependencies
@@ -35,7 +34,6 @@ This table lists the tested version of OS/PostgreSQL couples.
 - :grey_question: - will work in the future (help out if you can)
 - :interrobang: - maybe works, not tested
 - :no_entry: - PostgreSQL has reached EOL
-
 
 #### Variables
 
@@ -60,6 +58,9 @@ postgres_clusters:                         # Mandatory
     databases:
       - dbname: my_database                    # Mandatory
         owner: john                            # Mandatory
+        extensions:                            # Optional
+          - names: [ 'postgis', 'postgis_topology' ]
+            apt_deps: [ 'postgresql-11-postgis' ]
 
 # Postgres config (Optional)
 postgres_log_line_prefix: '%m [%p] database: %d host: %h user: %u '
