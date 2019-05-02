@@ -78,6 +78,13 @@ postgres_replication_hosts:
 
 # Ansible related Configuration
 postgres_become_method: su  # Optional
+
+# Barman connectivity
+postgres_barman_server: barman.example.com  # Required if at least one server has archive_enabled enabled
+postgres_barman_rsync_enabled: False        # Optional
+postgres_barman_rsync_options: ''           # Optional
+postgres_barman_remote_user: barman         # Optional
+postgres_barman_path_prefix: '~'            # Optional, required if using rsync
 ```
 
 #### Testing

@@ -29,11 +29,8 @@ sudo -u postgres mkdir -p /var/lib/postgresql/{{ postgres_version }}/{{ postgres
 
 echo Get previous backup from backups server
 sudo -u postgres \
-  time rsync --progress -pvia --exclude='*.conf' --exclude='server.crt' --exclude='server.key' --delete \
-{% if postgres_barman_rsync_enabled|default(false) -%}
-  --password-file=/var/lib/postgresql/.rsync_pass \
-{%- endif %}
-  {% if postgres_barman_rsync_enabled|default(false) -%}rsync://{%- endif -%}barman@{{ postgres_barman_server }}{%- if postgres_barman_rsync_enabled|default(false) -%}/backups{%- else -%}:~{%- endif -%}/$BARMAN_DATABASE/base/$BARMAN_BACKUP_VERSION/data/ \
+  time rsync --progress -pvia --exclude='*.conf' --exclude='server.crt' --exclude='server.key' --delete {{ rsync_options }} \
+  {{ barman_remote_url }}/$BARMAN_DATABASE/base/$BARMAN_BACKUP_VERSION/data/ \
   /var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/
 
 echo Restoring .conf and server certificate

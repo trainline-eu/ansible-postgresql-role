@@ -7,6 +7,7 @@ postgres_clusters: []
 # postgres_pgbadger_server: ~
 postgres_backup_enabled: false
 postgres_barman_rsync_enabled: false
+postgres_barman_remote_user: barman
 
 postgres_become_method: su
 #------------------------------------------------------------#
@@ -18,4 +19,3 @@ postgres_locale_system: C.UTF-8
 postgres_locale_formats: C.UTF-8
 postgres_text_search_config: pg_catalog.english
 #------------------------------------------------------------#
-
