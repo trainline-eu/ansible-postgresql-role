@@ -1,4 +1,16 @@
 ---
+- name: Compute barman remote URL
+  set_fact:
+    barman_remote_url: "{{ scheme }}{{ user }}{{ server }}{{ delimiter }}{{ path }}"
+    rsync_options: "{{ postgres_barman_rsync_options | default('') }}{{ rsync_password_file }}"
+  vars:
+    scheme: "{{ postgres_barman_rsync_enabled | ternary('rsync://', '') }}"
+    user: "{{ postgres_barman_remote_user is defined | ternary(postgres_barman_remote_user + '@', '') }}"
+    server: "{{ postgres_barman_server }}"
+    delimiter: "{{ postgres_barman_rsync_enabled | ternary('', ':')}}"
+    path: "{{ postgres_barman_path_prefix | default('~') }}"
+    rsync_password_file: "{{ postgres_barman_rsync_enabled | ternary(' --password-file=/var/lib/postgresql/.rsync_pass ', '') }}"
+
 - name: Copy secondary script
   template: src=standby-clone.sh.j2 dest=/root/standby-clone-{{ postgres_version }}-{{ postgres_cluster_name }}.sh mode=0755
 
