@@ -13,7 +13,7 @@
 - name: "CREATE EXTENSION on database {{ postgres_dbname }}"
   become: true
   become_user: postgres
-  become_method: su
+  become_method: "{{ postgres_become_method }}"
   postgresql_ext:
     name: "{{ postgres_extension_name }}"
     db: "{{ postgres_dbname }}"

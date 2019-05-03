@@ -75,6 +75,9 @@ postgres_allowed_hosts:
 postgres_replication_hosts:
   - user: replicator
     range: 10.0.0.0/24
+
+# Ansible related Configuration
+postgres_become_method: su  # Optional
 ```
 
 #### Testing

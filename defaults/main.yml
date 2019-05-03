@@ -7,6 +7,8 @@ postgres_clusters: []
 # postgres_pgbadger_server: ~
 postgres_backup_enabled: false
 postgres_barman_rsync_enabled: false
+
+postgres_become_method: su
 #------------------------------------------------------------#
 #------------ Postgresql Configuration defaults -------------#
 #- WARNING: defaults can change with major version upgrades -#
