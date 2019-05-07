@@ -68,6 +68,11 @@
                       - postgis
                       - postgis_topology
                       - btree_gist
+                schemas:
+                  - description: A readonly schema
+                    name: readonly
+                    default_privileges:
+                      - 'GRANT SELECT ON TABLES TO breakingtests'
 
       with_items:
         - postgres_one

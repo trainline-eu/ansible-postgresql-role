@@ -1,0 +1,27 @@
+---
+- name: "CREATE SCHEMA on database {{ postgres_dbname }}"
+  become: true
+  become_user: postgres
+  become_method: su
+  postgresql_schema:
+    name:     "{{ postgres_schema.name }}"
+    database: "{{ postgres_dbname }}"
+    owner:    "{{ postgres_schema.owner|default(omit) }}"
+    port:     "{{ postgres_port }}"
+  when: postgres_up.rc == 0
+
+- name: "ALTER DEFAULT PRIVILEGES IN SCHEMA {{ postgres_schema.name }} on database {{ postgres_dbname }}"
+  become: true
+  become_user: postgres
+  become_method: su
+  # postgresql_privs module doesn't supper "alter default" until Ansible 2.7
+  # https://docs.ansible.com/ansible/latest/modules/postgresql_privs_module.html?highlight=ALL_DEFAULT
+  command: "psql --port={{ postgres_port }} --command='{{ postgres_command }}'"
+  vars:
+    postgres_command: "ALTER DEFAULT PRIVILEGES IN SCHEMA {{ postgres_schema.name }} {{ postgres_default_privilege }}"
+  check_mode: no
+  changed_when: false
+  loop: "{{ postgres_schemas.default_privileges|default([]) }}"
+  loop_control:
+    loop_var: postgres_default_privilege
+  when: postgres_up.rc == 0

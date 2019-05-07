@@ -25,3 +25,10 @@
   loop_control:
     loop_var: postgres_extension
   when: postgres_up.rc == 0
+
+- name: Create extra database schemas (default PG schema is named public)
+  include_tasks: postgres-database-schemas.yml
+  loop: "{{ postgres_schemas| default([]) }}"
+  loop_control:
+    loop_var: postgres_schema
+  when: postgres_up.rc == 0

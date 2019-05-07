@@ -61,6 +61,9 @@ postgres_clusters:                         # Mandatory
         extensions:                            # Optional
           - names: [ 'postgis', 'postgis_topology' ]
             apt_deps: [ 'postgresql-11-postgis' ]
+        schemas:                               # Optional
+          - name: 'custom_schema'
+            default_privileges: [ 'GRANT SELECT ON TABLES TO ro_user' ]
 
 # Postgres config (Optional)
 postgres_log_line_prefix: '%m [%p] database: %d host: %h user: %u '

@@ -47,6 +47,7 @@
     postgres_dbname={{ item.1.dbname }}
     postgres_owner={{ item.1.owner }}
     postgres_extensions={{ item.1.extensions|default([]) }}
+    postgres_schemas={{ item.1.schemas|default([]) }}
     postgres_port={{ item.0.port }}
   with_subelements:
     - "{{ postgres_clusters }}"
