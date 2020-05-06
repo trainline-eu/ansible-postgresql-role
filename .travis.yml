@@ -1,9 +1,20 @@
 ---
+dist: bionic
 language: python
-python: "3.5"
+python: "3.8"
 
-# Use the new container infrastructure
-sudo: false
+# Test on all supported PG versions on both debian stretch and debian buster
+env:
+- POSTGRESQL_VERSION=9.5 DEBIAN_RELEASE=stretch
+- POSTGRESQL_VERSION=9.6 DEBIAN_RELEASE=stretch
+- POSTGRESQL_VERSION=10 DEBIAN_RELEASE=stretch
+- POSTGRESQL_VERSION=11 DEBIAN_RELEASE=stretch
+- POSTGRESQL_VERSION=12 DEBIAN_RELEASE=stretch
+- POSTGRESQL_VERSION=9.5 DEBIAN_RELEASE=buster
+- POSTGRESQL_VERSION=9.6 DEBIAN_RELEASE=buster
+- POSTGRESQL_VERSION=10 DEBIAN_RELEASE=buster
+- POSTGRESQL_VERSION=11 DEBIAN_RELEASE=buster
+- POSTGRESQL_VERSION=12 DEBIAN_RELEASE=buster
 
 # Install pip
 addons:
@@ -17,7 +28,7 @@ services:
 
 install:
   # Install ansible
-  - pip install ansible docker-py docker
+  - pip install -r test/requirements.txt
   # Check ansible version
   - ansible --version
   - ansible-galaxy install -r test/requirements.yml -p test/roles/
@@ -26,6 +37,7 @@ script:
   # Basic role syntax check
   - ansible-playbook test/main.yml -i test/hosts --syntax-check
   # Run the tests
+  - ansible-playbook test/main.yml -i test/hosts -e "postgres_version=${POSTGRESQL_VERSION}" -e "debian_release=${DEBIAN_RELEASE}"
   # FAILS - ansible-playbook test/main.yml -i test/hosts
   # Even if Docker and docker-py module are present, the tests fail on Travis
   # The error on Travis is:

@@ -1,6 +1,6 @@
 - src: chrismeyersfsu.provision_docker
   name: provision_docker
-  version: 7a6243dfcf69f9d262877eca487bc14b62ba6960
+  version: d68ce0aa486eff7669011ee2f9eaf68b95184ce1
 - src: trainline-eu.ansible_barman_role
   name: barman
   version: 1.1.0

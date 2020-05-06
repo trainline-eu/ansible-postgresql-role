@@ -2,8 +2,7 @@
 - name: Bring up docker containers
   hosts: localhost
   vars: &common_vars
-    postgres_version: 11
-    postgres_barman_directory: 'test-postgres-11'
+    postgres_barman_directory: "test-postgres-{{ postgres_version }}"
     postgres_barman_server: postgres_barman
     barman_rsync_password: "secret_rsync"
     barman_rsync_allowed_hosts: 172.17.0.0/24
@@ -15,25 +14,28 @@
         range: 172.17.0.0/24
     inventory:
       - name: "{{ postgres_barman_server }}"
-        image: "python:3.7-stretch"
+        image: "python:3.7-{{ debian_release }}"
       - name: postgres_one
-        image: "python:3.7-stretch"
+        image: "python:3.7-{{ debian_release }}"
         links:
           - "{{ postgres_barman_server }}"
       - name: postgres_two
-        image: "python:3.7-stretch"
+        image: "python:3.7-{{ debian_release }}"
         links:
           - "{{ postgres_barman_server }}"
           - postgres_one
       - name: postgres_three
-        image: "python:3.7-stretch"
+        image: "python:3.7-{{ debian_release }}"
         links:
           - "{{ postgres_barman_server }}"
           - postgres_one
   roles:
     - role: provision_docker
-      provision_docker_inventory: "{{inventory}}"
-      provision_docker_use_docker_connection: true
+      vars:
+        provision_docker_inventory: "{{inventory}}"
+        provision_docker_use_docker_connection: true
+        ansible_connection: local
+        ansible_python_interpreter: "{{ansible_playbook_python}}"
   tasks:
     - name: Group primary
       add_host:
@@ -63,7 +65,7 @@
                 extensions:
                   - description: PostGis
                     apt_deps:
-                      - "postgresql-{{ postgres_version }}-postgis"
+                      - "postgresql-{{ postgres_version }}-postgis-3"
                     names:
                       - postgis
                       - postgis_topology
@@ -129,13 +131,13 @@
   hosts: primary:secondary
   connection: docker
   vars:
-    postgres_listen_addresses: "{{ hostvars[inventory_hostname].ansible_default_ipv4.address }}"
+    postgres_listen_addresses: ["{{ hostvars[inventory_hostname].ansible_default_ipv4.address }}"]
   pre_tasks: &pre_tasks
-     - name: "Build hosts file"
-       shell: 'echo "{{ hostvars[inventory_hostname].ansible_default_ipv4.address }} {{inventory_hostname}}" >> /etc/hosts'
-       when: hostvars[inventory_hostname].ansible_default_ipv4.address is defined
+    - name: "Build hosts file"
+      shell: 'echo "{{ hostvars[inventory_hostname].ansible_default_ipv4.address }} {{inventory_hostname}}" >> /etc/hosts'
+      when: hostvars[inventory_hostname].ansible_default_ipv4.address is defined
 
-     - debug: msg="Running on host {{inventory_hostname}} ({{ hostvars[inventory_hostname].ansible_default_ipv4.address }})"
+    - debug: msg="Running on host {{inventory_hostname}} ({{ hostvars[inventory_hostname].ansible_default_ipv4.address }})"
   roles:
     - { role: ansible-postgresql-role, tags: ['postgres'] }
   tasks:
@@ -161,7 +163,7 @@
   connection: docker
   hosts: primary:secondary
   vars:
-    postgres_listen_addresses: "{{ hostvars[inventory_hostname].ansible_default_ipv4.address }}"
+    postgres_listen_addresses: ["{{ hostvars[inventory_hostname].ansible_default_ipv4.address }}"]
   pre_tasks: *pre_tasks
   roles:
     - { role: ansible-postgresql-role, tags: ['postgres'] }
