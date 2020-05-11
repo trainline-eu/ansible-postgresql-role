@@ -177,7 +177,7 @@ bgwriter_delay = 2000ms			# 10-10000ms between rounds
 
 # - Settings -
 
-wal_level = logical			# minimal, archive, hot_standby, or logical
+wal_level = {{ postgres_wal_level }}			# minimal, archive, hot_standby, or logical
 					# (change requires restart)
 
 {% if postgres_fsync_enabled %}

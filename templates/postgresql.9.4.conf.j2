@@ -177,7 +177,7 @@ dynamic_shared_memory_type = posix	# the default is the first option
 
 # - Settings -
 
-wal_level = logical			# minimal, archive, hot_standby, or logical
+wal_level = {{ postgres_wal_level }}			# minimal, archive, hot_standby, or logical
 					# (change requires restart)
 
 {% if postgres_fsync_enabled %}
