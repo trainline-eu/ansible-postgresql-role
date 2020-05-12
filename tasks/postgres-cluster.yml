@@ -5,6 +5,7 @@
     postgres_port: "{{ postgres_cluster.port }}"
     postgres_fsync_enabled: "{{ postgres_cluster.fsync_enabled }}"
     postgres_archive_enabled: "{{ postgres_cluster.archive_enabled }}"
+    postgres_wal_level: "{{ postgres_cluster.wal_level|default('logical') }}"
     postgres_max_replication_slots: "{{ postgres_cluster.max_replication_slots | default(10) }}"
     postgres_extra_config: "{{ postgres_cluster.extra_config | default({}) }}"
     barman_directory: "{{ postgres_cluster.barman_directory | default(None) }}"
@@ -19,7 +20,7 @@
   apt: name=postgresql-{{ postgres_version }}-repack
   when:
    - ansible_distribution_release != 'NA'
-   - postgres_version in ['9.3', '9.4', '9.5', '9.6', '10', '11']
+   - postgres_version in ['9.3', '9.4', '9.5', '9.6', '10', '11', '12']
 
 - name: Set initdb options
   set_fact: postgres_initdb_option="{% if postgres_checksums %}--data-checksums{% endif %}"
@@ -82,8 +83,16 @@
 
 - name: Upload recovery.conf
   template: src=recovery.conf.j2 dest=/var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/recovery.conf owner=postgres group=postgres mode=0600
-  when: postgres_primary
+  when: postgres_primary and postgres_version is version('12', '<')
   no_log: True
+
+- name: Define secondary nodes as secondaries with corresponding signal files
+  file:
+    path: "{{ item }}"
+    state: touch
+  when: postgres_primary and postgres_version is version('12', '>=')
+  with_items:
+    - /var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/standby.signal
 
 - name: Create log file
   file:

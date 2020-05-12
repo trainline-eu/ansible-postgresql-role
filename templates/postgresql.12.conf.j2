@@ -17,9 +17,9 @@
 #
 # This file is read on server startup and when the server receives a SIGHUP
 # signal.  If you edit the file on a running system, you have to SIGHUP the
-# server for the changes to take effect, or use "pg_ctl reload".  Some
-# parameters, which are marked below, require a server shutdown and restart to
-# take effect.
+# server for the changes to take effect, run "pg_ctl reload", or execute
+# "SELECT pg_reload_conf()".  Some parameters, which are marked below,
+# require a server shutdown and restart to take effect.
 #
 # Any parameter can also be given as a command-line option to the server, e.g.,
 # "postgres -c log_connections=on".  Some parameters can be changed at run time
@@ -63,8 +63,6 @@ listen_addresses = '{{ postgres_listen_addresses | reject("none") | join(",") }}
 					# (change requires restart)
 port = {{ postgres_port }}				# (change requires restart)
 max_connections = 400			# (change requires restart)
-# Note:  Increasing max_connections costs ~400 bytes of shared memory per
-# connection slot, plus lock space (see max_locks_per_transaction).
 #superuser_reserved_connections = 3	# (change requires restart)
 unix_socket_directories = '/var/run/postgresql'	# comma-separated list of directories
 					# (change requires restart)
@@ -76,29 +74,7 @@ unix_socket_directories = '/var/run/postgresql'	# comma-separated list of direct
 #bonjour_name = ''			# defaults to the computer name
 					# (change requires restart)
 
-# - Security and Authentication -
-
-#authentication_timeout = 1min		# 1s-600s
-ssl = true				# (change requires restart)
-#ssl_ciphers = 'HIGH:MEDIUM:+3DES:!aNULL' # allowed SSL ciphers
-					# (change requires restart)
-#ssl_prefer_server_ciphers = on		# (change requires restart)
-#ssl_ecdh_curve = 'prime256v1'		# (change requires restart)
-#ssl_cert_file = '/etc/ssl/certs/ssl-cert-snakeoil.pem'		# (change requires restart)
-# Default will be $PGDATA/server.pem
-#ssl_key_file = '/etc/ssl/private/ssl-cert-snakeoil.key'		# (change requires restart)
-# Default will be $PGDATA/server.key
-#ssl_ca_file = ''			# (change requires restart)
-#ssl_crl_file = ''			# (change requires restart)
-#password_encryption = on
-#db_user_namespace = off
-#row_security = on
-
-# GSSAPI using Kerberos
-#krb_server_keyfile = ''
-#krb_caseins_users = off
-
-# - TCP Keepalives -
+# - TCP settings -
 # see "man 7 tcp" for details
 
 #tcp_keepalives_idle = 0		# TCP_KEEPIDLE, in seconds;
@@ -107,6 +83,34 @@ ssl = true				# (change requires restart)
 					# 0 selects the system default
 #tcp_keepalives_count = 0		# TCP_KEEPCNT;
 					# 0 selects the system default
+#tcp_user_timeout = 0			# TCP_USER_TIMEOUT, in milliseconds;
+					# 0 selects the system default
+
+# - Authentication -
+
+#authentication_timeout = 1min		# 1s-600s
+#password_encryption = md5		# md5 or scram-sha-256
+#db_user_namespace = off
+
+# GSSAPI using Kerberos
+#krb_server_keyfile = ''
+#krb_caseins_users = off
+
+# - SSL -
+
+ssl = on
+#ssl_ca_file = ''
+#ssl_cert_file = '/etc/ssl/certs/ssl-cert-snakeoil.pem'
+#ssl_crl_file = ''
+#ssl_key_file = '/etc/ssl/private/ssl-cert-snakeoil.key'
+#ssl_ciphers = 'HIGH:MEDIUM:+3DES:!aNULL' # allowed SSL ciphers
+#ssl_prefer_server_ciphers = on
+#ssl_ecdh_curve = 'prime256v1'
+#ssl_min_protocol_version = 'TLSv1'
+#ssl_max_protocol_version = ''
+#ssl_dh_params_file = ''
+#ssl_passphrase_command = ''
+#ssl_passphrase_command_supports_reload = off
 
 
 #------------------------------------------------------------------------------
@@ -126,37 +130,39 @@ shared_buffers = {{ ansible_memtotal_mb // 4 }}MB			# min 128kB
 temp_buffers = 24MB			# min 800kB
 #max_prepared_transactions = 0		# zero disables the feature
 					# (change requires restart)
-# Note:  Increasing max_prepared_transactions costs ~600 bytes of shared memory
-# per transaction slot, plus lock space (see max_locks_per_transaction).
 # Caution: it is not advisable to set max_prepared_transactions nonzero unless
 # you actively intend to use prepared transactions.
 work_mem = 512MB				# min 64kB
 maintenance_work_mem = 1024MB		# min 1MB
-#replacement_sort_tuples = 150000	# limits use of replacement selection sort
 #autovacuum_work_mem = -1		# min 1MB, or -1 to use maintenance_work_mem
 #max_stack_depth = 2MB			# min 100kB
+#shared_memory_type = mmap		# the default is the first option
+					# supported by the operating system:
+					#   mmap
+					#   sysv
+					#   windows
+					# (change requires restart)
 dynamic_shared_memory_type = posix	# the default is the first option
 					# supported by the operating system:
 					#   posix
 					#   sysv
 					#   windows
 					#   mmap
-					# use none to disable dynamic shared memory
+					# (change requires restart)
 
 # - Disk -
 
 #temp_file_limit = -1			# limits per-process temp file space
 					# in kB, or -1 for no limit
 
-# - Kernel Resource Usage -
+# - Kernel Resources -
 
 #max_files_per_process = 1000		# min 25
 					# (change requires restart)
-#shared_preload_libraries = ''		# (change requires restart)
 
 # - Cost-Based Vacuum Delay -
 
-#vacuum_cost_delay = 0			# 0-100 milliseconds
+#vacuum_cost_delay = 0			# 0-100 milliseconds (0 disables)
 #vacuum_cost_page_hit = 1		# 0-10000 credits
 #vacuum_cost_page_miss = 10		# 0-10000 credits
 #vacuum_cost_page_dirty = 20		# 0-10000 credits
@@ -165,7 +171,7 @@ dynamic_shared_memory_type = posix	# the default is the first option
 # - Background Writer -
 
 bgwriter_delay = 2000ms			# 10-10000ms between rounds
-#bgwriter_lru_maxpages = 100		# 0-1000 max buffers written/round
+#bgwriter_lru_maxpages = 100		# max buffers written/round, 0 disables
 #bgwriter_lru_multiplier = 2.0		# 0-10.0 multiplier on buffers scanned/round
 #bgwriter_flush_after = 512kB		# measured in pages, 0 disables
 
@@ -173,29 +179,32 @@ bgwriter_delay = 2000ms			# 10-10000ms between rounds
 
 #effective_io_concurrency = 1		# 1-1000; 0 disables prefetching
 #max_worker_processes = 8		# (change requires restart)
-#max_parallel_workers_per_gather = 0	# taken from max_worker_processes
+#max_parallel_maintenance_workers = 2	# taken from max_parallel_workers
+#max_parallel_workers_per_gather = 2	# taken from max_parallel_workers
+#parallel_leader_participation = on
+#max_parallel_workers = 8		# maximum number of max_worker_processes that
+					# can be used in parallel operations
 #old_snapshot_threshold = -1		# 1min-60d; -1 disables; 0 is immediate
 					# (change requires restart)
 #backend_flush_after = 0		# measured in pages, 0 disables
 
 
 #------------------------------------------------------------------------------
-# WRITE AHEAD LOG
+# WRITE-AHEAD LOG
 #------------------------------------------------------------------------------
 
 # - Settings -
 
 wal_level = {{ postgres_wal_level }}			# minimal, replica, or logical
 					# (change requires restart)
-
 {% if postgres_fsync_enabled %}
 #fsync = on				# flush data to disk for crash safety
+					# (turning this off can cause
+					# unrecoverable data corruption)
 #synchronous_commit = on		# synchronization level;
 					# off, local, remote_write, remote_apply, or on
 {% else %}
 fsync = off				# turns forced synchronization on or off
-# (turning this off can cause
-# unrecoverable data corruption)
 synchronous_commit = off		# synchronization level;
 {% endif %}
 #wal_sync_method = fsync		# the default is the first option
@@ -209,6 +218,8 @@ synchronous_commit = off		# synchronization level;
 #wal_compression = off			# enable compression of full-page writes
 wal_log_hints = on			# also do full page writes of non-critical updates
 					# (change requires restart)
+#wal_init_zero = on			# zero-fill new WAL files
+#wal_recycle = on			# recycle WAL files
 #wal_buffers = -1			# min 32kB, -1 sets based on shared_buffers
 					# (change requires restart)
 #wal_writer_delay = 200ms		# 1-10000 milliseconds
@@ -220,8 +231,8 @@ wal_log_hints = on			# also do full page writes of non-critical updates
 # - Checkpoints -
 
 #checkpoint_timeout = 5min		# range 30s-1d
-#max_wal_size = 1GB
-#min_wal_size = 80MB
+max_wal_size = 1GB
+min_wal_size = 80MB
 #checkpoint_completion_target = 0.5	# checkpoint target duration, 0.0 - 1.0
 #checkpoint_flush_after = 256kB		# measured in pages, 0 disables
 #checkpoint_warning = 30s		# 0 disables
@@ -245,24 +256,74 @@ archive_command = ''
 #archive_timeout = 0		# force a logfile segment switch after this
 				# number of seconds; 0 disables
 
+# - Archive Recovery -
+
+# These are only used in recovery mode.
+
+{% if postgres_primary %}
+{# In PG < 12 versions all the recovery settings were in a separate recovery.conf file #}
+restore_command = '/usr/bin/barman-wal-restore --user barman --parallel 8 {{ postgres_barman_server }} {{ postgres_primary.restore_directory }} %f %p'		# command to use to restore an archived logfile segment
+				# placeholders: %p = path of file to restore
+				#               %f = file name only
+				# e.g. 'cp /mnt/server/archivedir/%f %p'
+				# (change requires restart)
+{% else %}
+#restore_command = ''		# command to use to restore an archived logfile segment
+				# placeholders: %p = path of file to restore
+				#               %f = file name only
+				# e.g. 'cp /mnt/server/archivedir/%f %p'
+				# (change requires restart)
+{% endif %}
+#archive_cleanup_command = ''	# command to execute at every restartpoint
+#recovery_end_command = ''	# command to execute at completion of recovery
+
+# - Recovery Target -
+
+# Set these only when performing a targeted recovery.
+
+#recovery_target = ''		# 'immediate' to end recovery as soon as a
+                                # consistent state is reached
+				# (change requires restart)
+#recovery_target_name = ''	# the named restore point to which recovery will proceed
+				# (change requires restart)
+#recovery_target_time = ''	# the time stamp up to which recovery will proceed
+				# (change requires restart)
+#recovery_target_xid = ''	# the transaction ID up to which recovery will proceed
+				# (change requires restart)
+#recovery_target_lsn = ''	# the WAL LSN up to which recovery will proceed
+				# (change requires restart)
+#recovery_target_inclusive = on # Specifies whether to stop:
+				# just after the specified recovery target (on)
+				# just before the recovery target (off)
+				# (change requires restart)
+{% if postgres_primary %}
+{# In PG < 12 versions all the recovery settings were in a separate recovery.conf file #}
+recovery_target_timeline='latest'	# 'current', 'latest', or timeline ID
+				# (change requires restart)
+{% else %}
+#recovery_target_timeline = 'latest'	# 'current', 'latest', or timeline ID
+				# (change requires restart)
+{% endif %}
+#recovery_target_action = 'pause'	# 'pause', 'promote', 'shutdown'
+				# (change requires restart)
 
 #------------------------------------------------------------------------------
 # REPLICATION
 #------------------------------------------------------------------------------
 
-# - Sending Server(s) -
+# - Sending Servers -
 
 # Set these on the master and on any standby that will send replication data.
 
-max_wal_senders = 5		# max number of walsender processes
+#max_wal_senders = 10		# max number of walsender processes
 				# (change requires restart)
-wal_keep_segments = 16		# in logfile segments, 16MB each; 0 disables
+wal_keep_segments = 16		# in logfile segments; 0 disables
 #wal_sender_timeout = 60s	# in milliseconds; 0 disables
 
 {% if postgres_max_replication_slots is defined %}
 max_replication_slots = {{ postgres_max_replication_slots }} # max number of replication slots
 {% else %}
-#max_replication_slots = 0	# max number of replication slots
+#max_replication_slots = 10	# max number of replication slots
 {% endif %}
 				# (change requires restart)
 #track_commit_timestamp = off	# collect timestamp of transaction commit
@@ -273,7 +334,8 @@ max_replication_slots = {{ postgres_max_replication_slots }} # max number of rep
 # These settings are ignored on a standby server.
 
 #synchronous_standby_names = ''	# standby servers that provide sync rep
-				# number of sync standbys and comma-separated list of application_name
+				# method to choose sync standbys, number of sync standbys,
+				# and comma-separated list of application_name
 				# from standby(s); '*' = all
 #vacuum_defer_cleanup_age = 0	# number of xacts by which cleanup is delayed
 
@@ -281,12 +343,28 @@ max_replication_slots = {{ postgres_max_replication_slots }} # max number of rep
 
 # These settings are ignored on a master server.
 
-hot_standby = on			# "on" allows queries during recovery
+{% if postgres_primary %}
+{# In PG < 12 versions this setting was defined in separate recovery.conf file #}
+primary_conninfo = 'host={{ postgres_primary.host }} port={{ postgres_primary.port }} user={{ postgres_primary.replication_user }} password={{ postgres_primary.replication_password }} sslmode=require'			# connection string to sending server
+					# (change requires restart)
+{% else %}
+#primary_conninfo = ''			# connection string to sending server
+					# (change requires restart)
+{% endif %}
+#primary_slot_name = ''			# replication slot on sending server
+					# (change requires restart)
+{% if postgres_primary %}
+{# In PG < 12 versions this setting was defined in separate recovery.conf file #}
+promote_trigger_file = '/var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/failover.trigger'		# file name whose presence ends recovery
+{% else %}
+#promote_trigger_file = ''		# file name whose presence ends recovery
+{% endif %}
+hot_standby = on			# "off" disallows queries during recovery
 					# (change requires restart)
 #max_standby_archive_delay = 30s	# max delay before canceling queries
 					# when reading WAL from archive;
 					# -1 allows indefinite delay
-max_standby_streaming_delay = 600s	# max delay before canceling queries
+max_standby_streaming_delay = {{ postgres_extra_config.max_standby_streaming_delay | default('600s') }}	# max delay before canceling queries
 					# when reading streaming WAL;
 					# -1 allows indefinite delay
 #wal_receiver_status_interval = 10s	# send replies at least this often
@@ -298,6 +376,15 @@ max_standby_streaming_delay = 600s	# max delay before canceling queries
 					# in milliseconds; 0 disables
 #wal_retrieve_retry_interval = 5s	# time to wait before retrying to
 					# retrieve WAL after a failed attempt
+#recovery_min_apply_delay = 0		# minimum delay for applying changes during recovery
+
+# - Subscribers -
+
+# These settings are ignored on a publisher.
+
+#max_logical_replication_workers = 4	# taken from max_worker_processes
+					# (change requires restart)
+#max_sync_workers_per_subscription = 2	# taken from max_logical_replication_workers
 
 
 #------------------------------------------------------------------------------
@@ -314,9 +401,14 @@ max_standby_streaming_delay = 600s	# max delay before canceling queries
 #enable_material = on
 #enable_mergejoin = on
 #enable_nestloop = on
+#enable_parallel_append = on
 #enable_seqscan = on
 #enable_sort = on
 #enable_tidscan = on
+#enable_partitionwise_join = off
+#enable_partitionwise_aggregate = off
+#enable_parallel_hash = on
+#enable_partition_pruning = on
 
 # - Planner Cost Constants -
 
@@ -333,7 +425,18 @@ random_page_cost = {{ postgres_specific_random_page_cost }}			# same scale as ab
 #cpu_operator_cost = 0.0025		# same scale as above
 #parallel_tuple_cost = 0.1		# same scale as above
 #parallel_setup_cost = 1000.0	# same scale as above
-#min_parallel_relation_size = 8MB
+
+#jit_above_cost = 100000		# perform JIT compilation if available
+					# and query more expensive than this;
+					# -1 disables
+#jit_inline_above_cost = 500000		# inline small functions if query is
+					# more expensive than this; -1 disables
+#jit_optimize_above_cost = 500000	# use expensive JIT optimizations if
+					# query is more expensive than this;
+					# -1 disables
+
+#min_parallel_table_scan_size = 8MB
+#min_parallel_index_scan_size = 512kB
 #effective_cache_size = 4GB
 effective_cache_size = {{ ansible_memtotal_mb // 2 }}MB
 
@@ -356,10 +459,13 @@ effective_cache_size = {{ ansible_memtotal_mb // 2 }}MB
 #join_collapse_limit = 8		# 1 disables collapsing of explicit
 					# JOIN clauses
 #force_parallel_mode = off
+#jit = on				# allow JIT compilation
+#plan_cache_mode = auto			# auto, force_generic_plan or
+					# force_custom_plan
 
 
 #------------------------------------------------------------------------------
-# ERROR REPORTING AND LOGGING
+# REPORTING AND LOGGING
 #------------------------------------------------------------------------------
 
 # - Where to Log -
@@ -376,7 +482,7 @@ effective_cache_size = {{ ansible_memtotal_mb // 2 }}MB
 					# (change requires restart)
 
 # These are only used if logging_collector is on:
-#log_directory = 'pg_log'		# directory where log files are written,
+#log_directory = 'log'			# directory where log files are written,
 					# can be absolute or relative to PGDATA
 #log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'	# log file name pattern,
 					# can include strftime() escapes
@@ -403,20 +509,10 @@ effective_cache_size = {{ ansible_memtotal_mb // 2 }}MB
 #syslog_split_messages = on
 
 # This is only relevant when logging to eventlog (win32):
+# (change requires restart)
 #event_source = 'PostgreSQL'
 
 # - When to Log -
-
-#client_min_messages = notice		# values in order of decreasing detail:
-					#   debug5
-					#   debug4
-					#   debug3
-					#   debug2
-					#   debug1
-					#   log
-					#   notice
-					#   warning
-					#   error
 
 #log_min_messages = warning		# values in order of decreasing detail:
 					#   debug5
@@ -451,6 +547,9 @@ log_min_duration_statement = 10000	# -1 is disabled, 0 logs all statements
 					# statements running at least this number
 					# of milliseconds
 
+#log_transaction_sample_rate = 0.0	# Fraction of transactions whose statements
+					# are logged regardless of their duration. 1.0 logs all
+					# statements from all transactions, 0.0 never logs.
 
 # - What to Log -
 
@@ -466,7 +565,7 @@ log_min_duration_statement = 10000	# -1 is disabled, 0 logs all statements
 #log_hostname = off
 
 log_line_prefix = '{{ postgres_log_line_prefix }}'
-#log_line_prefix = '%t '		# special values:
+#log_line_prefix = '%m [%p] %q%u@%d '	# special values:
 					#   %a = application name
 					#   %u = user name
 					#   %d = database name
@@ -495,8 +594,9 @@ log_line_prefix = '{{ postgres_log_line_prefix }}'
 					# -1 disables, 0 logs all temp files
 log_timezone = 'UTC'
 
-
-# - Process Title -
+#------------------------------------------------------------------------------
+# PROCESS TITLE
+#------------------------------------------------------------------------------
 
 cluster_name = '{{ postgres_version }}/{{ postgres_cluster_name }}'			# added to process titles if nonempty
 					# (change requires restart)
@@ -504,10 +604,10 @@ cluster_name = '{{ postgres_version }}/{{ postgres_cluster_name }}'			# added to
 
 
 #------------------------------------------------------------------------------
-# RUNTIME STATISTICS
+# STATISTICS
 #------------------------------------------------------------------------------
 
-# - Query/Index Statistics Collector -
+# - Query and Index Statistics Collector -
 
 #track_activities = on
 #track_counts = on
@@ -517,7 +617,7 @@ cluster_name = '{{ postgres_version }}/{{ postgres_cluster_name }}'			# added to
 stats_temp_directory = '/var/run/postgresql/{{ postgres_version }}-{{ postgres_cluster_name }}.pg_stat_tmp'
 
 
-# - Statistics Monitoring -
+# - Monitoring -
 
 #log_parser_stats = off
 #log_planner_stats = off
@@ -526,7 +626,7 @@ stats_temp_directory = '/var/run/postgresql/{{ postgres_version }}-{{ postgres_c
 
 
 #------------------------------------------------------------------------------
-# AUTOVACUUM PARAMETERS
+# AUTOVACUUM
 #------------------------------------------------------------------------------
 
 #autovacuum = on			# Enable autovacuum subprocess?  'on'
@@ -549,7 +649,7 @@ stats_temp_directory = '/var/run/postgresql/{{ postgres_version }}-{{ postgres_c
 #autovacuum_multixact_freeze_max_age = 400000000	# maximum multixact age
 					# before forced vacuum
 					# (change requires restart)
-#autovacuum_vacuum_cost_delay = 20ms	# default vacuum cost delay for
+#autovacuum_vacuum_cost_delay = 2ms	# default vacuum cost delay for
 					# autovacuum, in milliseconds;
 					# -1 means use vacuum_cost_delay
 #autovacuum_vacuum_cost_limit = -1	# default vacuum cost limit for
@@ -563,10 +663,22 @@ stats_temp_directory = '/var/run/postgresql/{{ postgres_version }}-{{ postgres_c
 
 # - Statement Behavior -
 
+#client_min_messages = notice		# values in order of decreasing detail:
+					#   debug5
+					#   debug4
+					#   debug3
+					#   debug2
+					#   debug1
+					#   log
+					#   notice
+					#   warning
+					#   error
 #search_path = '"$user", public'	# schema names
+#row_security = on
 #default_tablespace = ''		# a tablespace name, '' uses the default
 #temp_tablespaces = ''			# a list of tablespace names, '' uses
 					# only default tablespace
+#default_table_access_method = 'heap'
 #check_function_bodies = on
 #default_transaction_isolation = 'read committed'
 #default_transaction_read_only = off
@@ -574,11 +686,14 @@ stats_temp_directory = '/var/run/postgresql/{{ postgres_version }}-{{ postgres_c
 #session_replication_role = 'origin'
 #statement_timeout = 0			# in milliseconds, 0 is disabled
 #lock_timeout = 0			# in milliseconds, 0 is disabled
-#idle_in_transaction_session_timeout = 0		# in milliseconds, 0 is disabled
+#idle_in_transaction_session_timeout = 0	# in milliseconds, 0 is disabled
 #vacuum_freeze_min_age = 50000000
 #vacuum_freeze_table_age = 150000000
 #vacuum_multixact_freeze_min_age = 5000000
 #vacuum_multixact_freeze_table_age = 150000000
+#vacuum_cleanup_index_scale_factor = 0.1	# fraction of total number of tuples
+						# before index cleanup, 0 always performs
+						# index cleanup
 #bytea_output = 'hex'			# hex, escape
 #xmlbinary = 'base64'
 #xmloption = 'content'
@@ -600,7 +715,8 @@ timezone = '{{ postgres_timezone }}'
 					#   India
 					# You can create your own file in
 					# share/timezonesets/.
-#extra_float_digits = 0			# min -15, max 3
+#extra_float_digits = 1			# min -15, max 3; any value >0 actually
+					# selects precise output mode
 #client_encoding = sql_ascii		# actually, defaults to database
 					# encoding
 
@@ -614,11 +730,16 @@ lc_time = '{{ postgres_locale_formats }}'	# locale for time formatting
 # default configuration for text search
 default_text_search_config = '{{ postgres_text_search_config }}'
 
+# - Shared Library Preloading -
+
+#shared_preload_libraries = ''		# (change requires restart)
+#local_preload_libraries = ''
+#session_preload_libraries = ''
+#jit_provider = 'llvmjit'		# JIT library to use
+
 # - Other Defaults -
 
 #dynamic_library_path = '$libdir'
-#local_preload_libraries = ''
-#session_preload_libraries = ''
 
 
 #------------------------------------------------------------------------------
@@ -628,27 +749,26 @@ default_text_search_config = '{{ postgres_text_search_config }}'
 #deadlock_timeout = 1s
 #max_locks_per_transaction = 64		# min 10
 					# (change requires restart)
-# Note:  Each lock table slot uses ~270 bytes of shared memory, and there are
-# max_locks_per_transaction * (max_connections + max_prepared_transactions)
-# lock table slots.
 #max_pred_locks_per_transaction = 64	# min 10
 					# (change requires restart)
+#max_pred_locks_per_relation = -2	# negative values mean
+					# (max_pred_locks_per_transaction
+					#  / -max_pred_locks_per_relation) - 1
+#max_pred_locks_per_page = 2            # min 0
 
 
 #------------------------------------------------------------------------------
-# VERSION/PLATFORM COMPATIBILITY
+# VERSION AND PLATFORM COMPATIBILITY
 #------------------------------------------------------------------------------
 
 # - Previous PostgreSQL Versions -
 
 #array_nulls = on
 #backslash_quote = safe_encoding	# on, off, or safe_encoding
-#default_with_oids = off
 #escape_string_warning = on
 #lo_compat_privileges = off
 #operator_precedence_warning = off
 #quote_all_identifiers = off
-#sql_inheritance = on
 #standard_conforming_strings = on
 #synchronize_seqscans = on
 
@@ -663,6 +783,9 @@ default_text_search_config = '{{ postgres_text_search_config }}'
 
 #exit_on_error = off			# terminate session on any error?
 #restart_after_crash = on		# reinitialize after backend crash?
+#data_sync_retry = off			# retry or panic on failure to fsync
+					# data?
+					# (change requires restart)
 
 
 #------------------------------------------------------------------------------
@@ -670,12 +793,13 @@ default_text_search_config = '{{ postgres_text_search_config }}'
 #------------------------------------------------------------------------------
 
 # These options allow settings to be loaded from files other than the
-# default postgresql.conf.
+# default postgresql.conf.  Note that these are directives, not variable
+# assignments, so they can usefully be given more than once.
 
-#include_dir = 'conf.d'			# include files ending in '.conf' from
-					# directory 'conf.d'
-#include_if_exists = 'exists.conf'	# include file only if it exists
-#include = 'special.conf'		# include file
+include_dir = 'conf.d'			# include files ending in '.conf' from
+					# a directory, e.g., 'conf.d'
+#include_if_exists = '...'		# include file only if it exists
+#include = '...'			# include file
 
 
 #------------------------------------------------------------------------------

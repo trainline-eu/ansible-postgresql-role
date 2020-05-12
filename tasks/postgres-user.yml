@@ -8,6 +8,12 @@
   check_mode: no
   changed_when: false
 
+- name: "Install required packages for 'postgres_user' ansible module"
+  apt:
+    name:
+      - libpq-dev
+      - python-psycopg2
+
 - name: Create PostgreSQL user
   become: true
   become_user: postgres

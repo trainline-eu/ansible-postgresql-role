@@ -6,7 +6,7 @@ See [role page on Ansible Galaxy](https://galaxy.ansible.com/trainline-eu/ansibl
 
 #### Installation
 
-This role has been tested on Ansible 2.3.0 and higher.
+This role has been tested on Ansible 2.5.0 and higher.
 
 To install:
 
@@ -25,10 +25,10 @@ Recommended dependencies:
 
 This table lists the tested version of OS/PostgreSQL couples.
 
-| Distribution / PostgreSQL | 9.1 | 9.4 | 9.5 | 9.6 | 10  | 11  |
-| ------------------------- |:---:|:---:|:---:|:---:|:---:|:---:|
-| Debian 8.x | :no_entry: :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:|
-| Debian 9.x | :no_entry: :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:| :white_check_mark:|
+| Distribution / PostgreSQL | 9.1                           | 9.4                           | 9.5                | 9.6                | 10                 | 11                 | 12                 |
+| ------------------------- | :---:                         | :---:                         | :---:              | :---:              | :---:              | :---:              | :---:              |
+| Debian 8.x                | :no_entry: :white_check_mark: | :no_entry: :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| Debian 9.x                | :no_entry: :white_check_mark: | :no_entry: :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
 - :white_check_mark: - tested, works fine
 - :grey_question: - will work in the future (help out if you can)
