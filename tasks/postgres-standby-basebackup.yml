@@ -1,0 +1,4 @@
+---
+- name: Copy secondary pg_basebackup clone script
+  template: src=standby-pg_basebackup-clone.sh.j2 dest=/root/standby-clone-{{ postgres_version }}-{{ postgres_cluster_name }}.sh mode=0755
+  no_log: true

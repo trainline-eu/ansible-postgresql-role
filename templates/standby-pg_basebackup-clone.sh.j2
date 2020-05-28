@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+
+set -eo pipefail
+
+CLUSTER_VERSION="{{ postgres_version }}"
+CLUSTER_NAME="{{ postgres_cluster_name }}"
+PRIMARY_CLUSTER_HOST="{{ postgres_primary.host }}"
+PRIMARY_CLUSTER_PORT="{{ postgres_primary.port }}"
+PRIMARY_CLUSTER_USER="{{ postgres_primary.replication_user }}"
+PRIMARY_CLUSTER_PASSWORD="{{ postgres_primary.replication_password }}"
+{% if postgres_primary.replication_dbname is defined %}
+PRIMARY_CLUSTER_DBNAME=" dbname='{{ postgres_primary.replication_dbname }}'"
+{% endif %}
+
+read -p "You are about to clone the primary cluster (${PRIMARY_CLUSTER_HOST}:${PRIMARY_CLUSTER_PORT}) with pg_basebackup. This will replace the local ${CLUSTER_VERSION}/${CLUSTER_NAME} cluster. Are you sure? [y/n] " -r go
+
+if [ "$go" != "y" ]; then
+    echo "Aborted."
+    exit 1
+fi
+
+BACKUP_DATE=$(date +%s)
+
+echo "Stopping PostgreSQL"
+pg_ctlcluster "${CLUSTER_VERSION}" "${CLUSTER_NAME}" stop || true
+
+echo "Cleaning up old cluster directory"
+sudo -u postgres mv "/var/lib/postgresql/${CLUSTER_VERSION}/${CLUSTER_NAME}"{,"_${BACKUP_DATE}"}
+
+echo "Creating new directory"
+sudo -u postgres mkdir -p "/var/lib/postgresql/${CLUSTER_VERSION}/${CLUSTER_NAME}"
+
+echo "Get backup from primary server"
+sudo -u postgres \
+  time "/usr/lib/postgresql/${CLUSTER_VERSION}/bin/pg_basebackup" --format=p -R \
+  -d "host='${PRIMARY_CLUSTER_HOST}' port='${PRIMARY_CLUSTER_PORT}' user='${PRIMARY_CLUSTER_USER}' password='${PRIMARY_CLUSTER_PASSWORD}' ${PRIMARY_CLUSTER_DBNAME} sslmode=require" \
+  -D "/var/lib/postgresql/${CLUSTER_VERSION}/${CLUSTER_NAME}/"
+
+echo "Restoring .conf and server certificate"
+sudo -u postgres cp -a "/var/lib/postgresql/${CLUSTER_VERSION}/${CLUSTER_NAME}_${BACKUP_DATE}/"{*.conf,server.crt,server.key} "/var/lib/postgresql/${CLUSTER_VERSION}/${CLUSTER_NAME}/"
+
+echo "Ensure rights are correcly set"
+chown -R postgres:postgres "/var/lib/postgresql/${CLUSTER_VERSION}/"
+chmod 0700 "/var/lib/postgresql/${CLUSTER_VERSION}/"
+chmod -R o-rwx "/var/lib/postgresql/${CLUSTER_VERSION}/"
+
+echo "Starting PostgreSQL"
+sudo pg_ctlcluster "${CLUSTER_VERSION}" "${CLUSTER_NAME}" start

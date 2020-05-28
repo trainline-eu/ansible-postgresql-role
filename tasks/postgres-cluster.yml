@@ -60,7 +60,11 @@
 
 - name: Add standby clone from barman script
   include: postgres-standby-barman.yml
-  when: postgres_barman_server is defined
+  when: postgres_barman_server is defined and postgres_primary.restore_barman_directory is defined
+
+- name: Add standby clone from pg_basebackup
+  include: postgres-standby-basebackup.yml
+  when: postgres_primary and postgres_primary.pg_basebackup is defined
 
 - name: Determine SSD or rotational disks
   raw: 'lsblk --noheadings --nodeps --raw --output=rota | grep -q 1'
