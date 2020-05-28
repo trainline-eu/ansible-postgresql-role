@@ -49,6 +49,17 @@ postgres_clusters:                         # Mandatory
     checksums: True                          # Optional
     fsync_enabled: False                     # Optional
     archive_enabled: False                   # Optional
+    wal_level: 'logical'                     # Optional
+    max_replication_slots: 10                # Optional
+    barman_directory: None                   # Optional
+    # Define cluster as a standby server
+    primary:                                 # Optional
+      host: '127.0.1.1'                        # Mandatory
+      port: 5433                               # Mandatory
+      replication_user:     'replicator'       # Mandatory
+      replication_password: 'SuperSecret'      # Mandatory
+      restore_command: None                    # Optional
+      restore_barman_directory: None           # Optional
     # List of users to be created (optional)
     users:
       - username: 'replicator'                 # Mandatory
