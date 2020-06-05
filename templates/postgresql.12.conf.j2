@@ -260,20 +260,18 @@ archive_command = ''
 
 # These are only used in recovery mode.
 
-{% if postgres_primary %}
 {# In PG < 12 versions all the recovery settings were in a separate recovery.conf file #}
-restore_command = '/usr/bin/barman-wal-restore --user barman --parallel 8 {{ postgres_barman_server }} {{ postgres_primary.restore_directory }} %f %p'		# command to use to restore an archived logfile segment
-				# placeholders: %p = path of file to restore
-				#               %f = file name only
-				# e.g. 'cp /mnt/server/archivedir/%f %p'
-				# (change requires restart)
+{% if postgres_primary and postgres_primary.restore_command is defined %}
+restore_command = '{{ postgres_primary.restore_command }}'		# command to use to restore an archived logfile segment
+{% elif postgres_primary and postgres_primary.restore_barman_directory is defined %}
+restore_command = '/usr/bin/barman-wal-restore --user barman --parallel 8 {{ postgres_barman_server }} {{ postgres_primary.restore_barman_directory }} %f %p'		# command to use to restore an archived logfile segment
 {% else %}
 #restore_command = ''		# command to use to restore an archived logfile segment
+{% endif %}
 				# placeholders: %p = path of file to restore
 				#               %f = file name only
 				# e.g. 'cp /mnt/server/archivedir/%f %p'
 				# (change requires restart)
-{% endif %}
 #archive_cleanup_command = ''	# command to execute at every restartpoint
 #recovery_end_command = ''	# command to execute at completion of recovery
 

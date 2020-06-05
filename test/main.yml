@@ -91,7 +91,7 @@
             primary:
               host: postgres_one
               port: 5432
-              restore_directory: "{{ postgres_barman_directory }}"
+              restore_barman_directory: "{{ postgres_barman_directory }}"
               replication_user: "replicator"
               replication_password: "secret_repli"
 
