@@ -11,8 +11,8 @@
     path: "{{ postgres_barman_path_prefix | default('~') }}"
     rsync_password_file: "{{ postgres_barman_rsync_enabled | ternary(' --password-file=/var/lib/postgresql/.rsync_pass ', '') }}"
 
-- name: Copy secondary script
-  template: src=standby-clone.sh.j2 dest=/root/standby-clone-{{ postgres_version }}-{{ postgres_cluster_name }}.sh mode=0755
+- name: Copy secondary barman clone script
+  template: src=standby-barman-clone.sh.j2 dest=/root/standby-clone-{{ postgres_version }}-{{ postgres_cluster_name }}.sh mode=0755
 
 - name: Copy rsync password file
   copy:
