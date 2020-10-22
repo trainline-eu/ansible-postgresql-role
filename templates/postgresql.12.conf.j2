@@ -132,8 +132,22 @@ temp_buffers = 24MB			# min 800kB
 					# (change requires restart)
 # Caution: it is not advisable to set max_prepared_transactions nonzero unless
 # you actively intend to use prepared transactions.
-work_mem = 512MB				# min 64kB
-maintenance_work_mem = 1024MB		# min 1MB
+
+# https://info.crunchydata.com/blog/optimize-postgresql-server-performance
+# Set work_mem to 0.5% of the total available memory
+# it can be allocated multiple time concurrently)
+{% if postgres_work_mem is defined %}
+work_mem = {{ postgres_work_mem }}MB		# min 64kB
+{% else %}
+work_mem = {{ (ansible_memtotal_mb * 0.005) |int }}MB		# min 64kB
+{% endif %}
+# Set maintenance_work_mem to 5% of the total available memory
+# it can be allocated only once by PG maintenance tasks
+{% if postgres_maintenance_work_mem is defined %}
+maintenance_work_mem = {{ postgres_maintenance_work_mem }}MB	# min 1MB
+{% else %}
+maintenance_work_mem = {{ (ansible_memtotal_mb * 0.05) | int }}MB	# min 1MB
+{% endif %}
 #autovacuum_work_mem = -1		# min 1MB, or -1 to use maintenance_work_mem
 #max_stack_depth = 2MB			# min 100kB
 #shared_memory_type = mmap		# the default is the first option
