@@ -1,4 +1,4 @@
-- name: Test if the PostgreSQL server is up
+- name: Test if the PostgreSQL server (on port {{ postgres_port }}) is up
   become: true
   become_user: postgres
   become_method: "{{ postgres_become_method }}"
