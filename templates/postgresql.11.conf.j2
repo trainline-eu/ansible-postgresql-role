@@ -243,7 +243,7 @@ min_wal_size = 80MB
 
 {% if postgres_archive_enabled %}
 archive_mode = on
-archive_command = 'rsync -a %p barman@{{ postgres_barman_server }}:/var/lib/barman/{{ barman_directory }}/incoming/%f'
+archive_command = 'rsync -a %p barman@{{ barman_server }}:/var/lib/barman/{{ barman_directory }}/incoming/%f'
 {% else %}
 archive_mode = off
 archive_command = ''

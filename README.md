@@ -51,7 +51,14 @@ postgres_clusters:                         # Mandatory
     archive_enabled: False                   # Optional
     wal_level: 'logical'                     # Optional
     max_replication_slots: 10                # Optional
-    barman_directory: None                   # Optional
+    barman:                                  # Required if archive_enabled is enabled
+      directory: 'main-v11'                    # Required. Should includes the PostgreSQL major version
+      server: barman.example.com               # Required
+      server_ansible_host: ssh.example.com     # Optional, will be used in place of "server" for Ansible SSH connection
+      rsync_enabled: False                     # Optional, will overwrite global variable postgres_barman_rsync_enabled
+      rsync_options: ''                        # Optional, will overwrite global variable postgres_barman_rsync_options
+      remote_user: barman                      # Optional, will overwrite global variable postgres_barman_remote_user
+      path_prefix: '~'                         # Optional, will overwrite global variable postgres_barman_path_prefix
     # Define cluster as a standby server
     primary:                                 # Optional
       host: '127.0.1.1'                        # Mandatory
@@ -91,7 +98,6 @@ postgres_replication_hosts:
 postgres_become_method: su  # Optional
 
 # Barman connectivity
-postgres_barman_server: barman.example.com  # Required if at least one server has archive_enabled enabled
 postgres_barman_rsync_enabled: False        # Optional
 postgres_barman_rsync_options: ''           # Optional
 postgres_barman_remote_user: barman         # Optional

@@ -11,30 +11,6 @@
   args:
     creates: /var/lib/postgresql/.ssh/id_rsa
 
-- slurp:
-    src: /var/lib/postgresql/.ssh/id_rsa.pub
-  register: db_server_pub_key
-
-- name: Check if barman is installed on barman server
-  getent:
-    database: passwd
-    key: "barman"
-  delegate_to: "{{ postgres_barman_server_public|default(postgres_barman_server) }}"
-  when: postgres_barman_server is defined
-  register: barman_user_exists
-  ignore_errors: true
-  changed_when: false
-
-- name: Allow SSH access on barman server
-  authorized_key:
-    user: "barman"
-    key: "{{ db_server_pub_key['content']|b64decode }}"
-    state: present
-  delegate_to: "{{ postgres_barman_server_public|default(postgres_barman_server) }}"
-  when:
-    - postgres_barman_server is defined
-    - barman_user_exists is succeeded
-
 - name: Copy logrotate configuration for postgresql
   template: src=logrotate-postgresql-common.j2 dest=/etc/logrotate.d/postgresql-common owner=root group=root mode=0644
 
