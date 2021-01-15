@@ -285,7 +285,7 @@ max_replication_slots = {{ postgres_max_replication_slots }} # max number of rep
 
 hot_standby = on			# "on" allows queries during recovery
 					# (change requires restart)
-#max_standby_archive_delay = 30s	# max delay before canceling queries
+max_standby_archive_delay = {{ postgres_extra_config.max_standby_archive_delay | default('30s') }} # max delay before canceling queries
 					# when reading WAL from archive;
 					# -1 allows indefinite delay
 max_standby_streaming_delay = {{ postgres_extra_config.max_standby_streaming_delay | default('600s') }}	# max delay before canceling queries
