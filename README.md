@@ -104,7 +104,7 @@ This project comes with a `test/main.yml` testing playbook. It uses `Docker` to 
 
 Coverage of this playbook is probably not complete but at least it's there.
 
-If you are contributing, please first test your changes in a new playbook in the `test/` directory within docker containers, (using the targeted distribution), and if possible, ensure your change is covered in the tests found in [.travis.yml](./.travis.yml).
+If you are contributing, please first test your changes in a new playbook in the `test/` directory within docker containers, (using the targeted distribution), and if possible, ensure your change is covered in the tests.
 
 #### License
 

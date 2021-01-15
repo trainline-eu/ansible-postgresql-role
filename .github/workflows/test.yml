@@ -1,0 +1,32 @@
+name: Create test cluster
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        postgresql_version: [10, 11, 12]
+        debian_release: [buster, stretch]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r test/requirements.txt
+          ansible --version
+          ansible-galaxy install -r test/requirements.yml -p test/roles/
+      - name: Check role syntax
+        run: |
+          ansible-playbook test/main.yml -i test/hosts --syntax-check
+      - name: Run the tests
+        env:
+          POSTGRESQL_VERSION: ${{ matrix.postgresql_version }}
+          DEBIAN_RELEASE: ${{ matrix.debian_release }}
+        run: |
+          ansible-playbook test/main.yml -i test/hosts -e "postgres_version=${POSTGRESQL_VERSION}" -e "debian_release=${DEBIAN_RELEASE}"
