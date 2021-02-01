@@ -72,6 +72,13 @@ postgres_clusters:                         # Mandatory
         extensions:                            # Optional
           - names: [ 'postgis', 'postgis_topology' ]
             apt_deps: [ 'postgresql-11-postgis' ]
+    extra_config:                            # Optional
+      max_connections: 100                     # Optional
+      shared_preload_libraries: ''             # Optional
+      max_worker_processes: 8                  # Optional
+      track_commit_timestamp: off              # Optional
+      max_standby_archive_delay: 30s           # Optional
+      max_standby_streaming_delay: 600s        # Optional
 
 # Postgres config (Optional)
 postgres_log_line_prefix: '%m [%p] database: %d host: %h user: %u '
