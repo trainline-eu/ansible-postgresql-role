@@ -277,7 +277,7 @@ max_replication_slots = {{ postgres_max_replication_slots }} # max number of rep
 #max_replication_slots = 0	# max number of replication slots
 {% endif %}
 				# (change requires restart)
-#track_commit_timestamp = off	# collect timestamp of transaction commit
+track_commit_timestamp = {{ postgres_extra_config.track_commit_timestamp | default('off') }}	# collect timestamp of transaction commit
 				# (change requires restart)
 
 # - Master Server -
