@@ -168,7 +168,7 @@ shared_preload_libraries = '{{ postgres_extra_config.shared_preload_libraries | 
 # - Asynchronous Behavior -
 
 #effective_io_concurrency = 1		# 1-1000; 0 disables prefetching
-#max_worker_processes = 8
+max_worker_processes = {{ postgres_extra_config.max_worker_processes | default('8') }}
 
 
 #------------------------------------------------------------------------------

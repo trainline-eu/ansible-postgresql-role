@@ -182,7 +182,7 @@ bgwriter_delay = 2000ms			# 10-10000ms between rounds
 # - Asynchronous Behavior -
 
 #effective_io_concurrency = 1		# 1-1000; 0 disables prefetching
-#max_worker_processes = 8
+max_worker_processes = {{ postgres_extra_config.max_worker_processes | default('8') }}
 
 
 #------------------------------------------------------------------------------
