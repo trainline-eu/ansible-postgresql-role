@@ -62,7 +62,7 @@ listen_addresses = '{{ postgres_listen_addresses | reject("none") | join(",") }}
 					# defaults to 'localhost'; use '*' for all
 					# (change requires restart)
 port = {{ postgres_port }}				# (change requires restart)
-max_connections = 400			# (change requires restart)
+max_connections = {{ postgres_extra_config.max_connections | default('100') }}			# (change requires restart)
 #superuser_reserved_connections = 3	# (change requires restart)
 unix_socket_directories = '/var/run/postgresql'	# comma-separated list of directories
 					# (change requires restart)
@@ -182,7 +182,7 @@ bgwriter_delay = 2000ms			# 10-10000ms between rounds
 # - Asynchronous Behavior -
 
 #effective_io_concurrency = 1		# 1-1000; 0 disables prefetching
-#max_worker_processes = 8		# (change requires restart)
+max_worker_processes = {{ postgres_extra_config.max_worker_processes | default('8') }}		# (change requires restart)
 #max_parallel_maintenance_workers = 2	# taken from max_parallel_workers
 #max_parallel_workers_per_gather = 2	# taken from max_parallel_workers
 #parallel_leader_participation = on
@@ -278,7 +278,7 @@ max_replication_slots = {{ postgres_max_replication_slots }} # max number of rep
 #max_replication_slots = 10	# max number of replication slots
 {% endif %}
 				# (change requires restart)
-#track_commit_timestamp = off	# collect timestamp of transaction commit
+track_commit_timestamp = {{ postgres_extra_config.track_commit_timestamp | default('off') }}	# collect timestamp of transaction commit
 				# (change requires restart)
 
 # - Master Server -
@@ -660,7 +660,7 @@ default_text_search_config = '{{ postgres_text_search_config }}'
 
 # - Shared Library Preloading -
 
-#shared_preload_libraries = ''		# (change requires restart)
+shared_preload_libraries = '{{ postgres_extra_config.shared_preload_libraries | default('') }}'		# (change requires restart)
 #local_preload_libraries = ''
 #session_preload_libraries = ''
 #jit_provider = 'llvmjit'               # JIT library to use

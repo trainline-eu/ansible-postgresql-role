@@ -62,7 +62,7 @@ listen_addresses = '{{ postgres_listen_addresses | reject("none") | join(",") }}
 					# defaults to 'localhost'; use '*' for all
 					# (change requires restart)
 port = {{ postgres_port }}				# (change requires restart)
-max_connections = 400			# (change requires restart)
+max_connections = {{ postgres_extra_config.max_connections | default('100') }}			# (change requires restart)
 # Note:  Increasing max_connections costs ~400 bytes of shared memory per
 # connection slot, plus lock space (see max_locks_per_transaction).
 #superuser_reserved_connections = 3	# (change requires restart)
@@ -166,7 +166,7 @@ dynamic_shared_memory_type = posix	# the default is the first option
 
 #max_files_per_process = 1000		# min 25
 					# (change requires restart)
-#shared_preload_libraries = ''		# (change requires restart)
+shared_preload_libraries = '{{ postgres_extra_config.shared_preload_libraries | default('') }}'		# (change requires restart)
 
 # - Cost-Based Vacuum Delay -
 
@@ -186,7 +186,7 @@ bgwriter_delay = 2000ms			# 10-10000ms between rounds
 # - Asynchronous Behavior -
 
 #effective_io_concurrency = 1		# 1-1000; 0 disables prefetching
-#max_worker_processes = 8		# (change requires restart)
+max_worker_processes = {{ postgres_extra_config.max_worker_processes | default('8') }}		# (change requires restart)
 #max_parallel_workers_per_gather = 0	# taken from max_worker_processes
 #old_snapshot_threshold = -1		# 1min-60d; -1 disables; 0 is immediate
 					# (change requires restart)
@@ -279,7 +279,7 @@ max_replication_slots = {{ postgres_max_replication_slots }} # max number of rep
 #max_replication_slots = 0	# max number of replication slots
 {% endif %}
 				# (change requires restart)
-#track_commit_timestamp = off	# collect timestamp of transaction commit
+track_commit_timestamp = {{ postgres_extra_config.track_commit_timestamp | default('off') }}	# collect timestamp of transaction commit
 				# (change requires restart)
 
 # - Master Server -
