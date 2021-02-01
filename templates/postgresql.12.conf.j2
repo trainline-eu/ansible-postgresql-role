@@ -744,7 +744,7 @@ default_text_search_config = '{{ postgres_text_search_config }}'
 
 # - Shared Library Preloading -
 
-#shared_preload_libraries = ''		# (change requires restart)
+shared_preload_libraries = '{{ postgres_extra_config.shared_preload_libraries | default('') }}'		# (change requires restart)
 #local_preload_libraries = ''
 #session_preload_libraries = ''
 #jit_provider = 'llvmjit'		# JIT library to use
