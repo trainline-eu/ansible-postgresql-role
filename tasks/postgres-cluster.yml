@@ -23,7 +23,8 @@
    - postgres_version in ['9.3', '9.4', '9.5', '9.6', '10', '11', '12']
 
 - name: Install pglogical version {{ postgres_version }}
-  apt: name=postgresql-{{ postgres_version }}-pglogical
+  apt: 
+    name: "postgresql-{{ postgres_version }}-pglogical"
   when:
    - ansible_distribution_release != 'NA'
    - postgres_extra_config.shared_preload_libraries is defined and 'pglogical' in postgres_extra_config.shared_preload_libraries
