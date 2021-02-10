@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        postgresql_version: [10, 11, 12]
+        postgresql_version: [10, 11, 12, 13]
         debian_release: [buster, stretch]
     steps:
       - uses: actions/checkout@v2
