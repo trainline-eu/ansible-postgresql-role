@@ -20,10 +20,10 @@
   apt: name=postgresql-{{ postgres_version }}-repack
   when:
    - ansible_distribution_release != 'NA'
-   - postgres_version in ['9.3', '9.4', '9.5', '9.6', '10', '11', '12']
+   - postgres_version in ['9.4', '9.5', '9.6', '10', '11', '12', '13']
 
 - name: Install pglogical version {{ postgres_version }}
-  apt: 
+  apt:
     name: "postgresql-{{ postgres_version }}-pglogical"
   when:
    - ansible_distribution_release != 'NA'
