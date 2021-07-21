@@ -33,7 +33,7 @@
 - include: postgres-user.yml
   vars:
     postgres_username: "{{ item.1.username }}"
-    postgres_password: "{{ item.1.password }}"
+    postgres_password: "{{ item.1.password | default('') }}"
     postgres_port: "{{ item.0.port }}"
     postgres_permissions: "{{ item.1.permissions | default('') }}"
   loop: "{{ q('subelements', postgres_clusters, 'users', {'skip_missing': True}) }}"

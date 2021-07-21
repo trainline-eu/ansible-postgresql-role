@@ -3,7 +3,7 @@
     postgres_version: "{{ postgres_cluster.version }}"
     postgres_cluster_name: "{{ postgres_cluster.name }}"
     postgres_port: "{{ postgres_cluster.port }}"
-    postgres_fsync_enabled: "{{ postgres_cluster.fsync_enabled }}"
+    postgres_fsync_enabled: "{{ postgres_cluster.fsync_enabled|default('False') }}"
     postgres_archive_enabled: "{{ postgres_cluster.archive_enabled }}"
     postgres_wal_level: "{{ postgres_cluster.wal_level|default('logical') }}"
     postgres_max_replication_slots: "{{ postgres_cluster.max_replication_slots | default(10) }}"

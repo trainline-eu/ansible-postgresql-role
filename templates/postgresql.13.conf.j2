@@ -119,11 +119,7 @@ ssl_key_file = '/etc/ssl/private/ssl-cert-snakeoil.key'
 
 # - Memory -
 
-{% if ansible_memtotal_mb > 65536 %}
-shared_buffers = 16GB			# min 128kB
-{% else %}
-shared_buffers = {{ ansible_memtotal_mb // 4 }}MB			# min 128kB
-{% endif %}
+shared_buffers = {{ postgres_extra_config.shared_buffers | default('128MB') }}			# min 128kB
 					# (change requires restart)
 #huge_pages = try			# on, off, or try
 					# (change requires restart)
@@ -136,19 +132,11 @@ temp_buffers = 24MB			# min 800kB
 # https://info.crunchydata.com/blog/optimize-postgresql-server-performance
 # Set work_mem to 0.5% of the total available memory
 # it can be allocated multiple time concurrently)
-{% if postgres_work_mem is defined %}
-work_mem = {{ postgres_work_mem }}MB		# min 64kB
-{% else %}
-work_mem = {{ (ansible_memtotal_mb * 0.005) |int }}MB		# min 64kB
-{% endif %}
+work_mem = {{ postgres_extra_config.work_mem | default('4MB') }}		# min 64kB
 #hash_mem_multiplier = 1.0		# 1-1000.0 multiplier on hash table work_mem
 # Set maintenance_work_mem to 5% of the total available memory
 # it can be allocated only once by PG maintenance tasks
-{% if postgres_maintenance_work_mem is defined %}
-maintenance_work_mem = {{ postgres_maintenance_work_mem }}MB	# min 1MB
-{% else %}
-maintenance_work_mem = {{ (ansible_memtotal_mb * 0.05) | int }}MB	# min 1MB
-{% endif %}
+maintenance_work_mem = {{ postgres_extra_config.maintenance_work_mem | default('64MB') }}	# min 1MB
 #autovacuum_work_mem = -1		# min 1MB, or -1 to use maintenance_work_mem
 #logical_decoding_work_mem = 64MB	# min 64kB
 #max_stack_depth = 2MB			# min 100kB
@@ -193,13 +181,13 @@ bgwriter_delay = 2000ms			# 10-10000ms between rounds
 
 # - Asynchronous Behavior -
 
-#effective_io_concurrency = 1		# 1-1000; 0 disables prefetching
+effective_io_concurrency = {{ postgres_extra_config.effective_io_concurrency | default('1') }}		# 1-1000; 0 disables prefetching
 #maintenance_io_concurrency = 10	# 1-1000; 0 disables prefetching
 max_worker_processes = {{ postgres_extra_config.max_worker_processes | default('8') }}		# (change requires restart)
-#max_parallel_maintenance_workers = 2	# taken from max_parallel_workers
-#max_parallel_workers_per_gather = 2	# taken from max_parallel_workers
+max_parallel_maintenance_workers = {{ postgres_extra_config.max_parallel_maintenance_workers | default('2') }}	# taken from max_parallel_workers
+max_parallel_workers_per_gather = {{ postgres_extra_config.max_parallel_workers_per_gather | default('2') }}	# taken from max_parallel_workers
 #parallel_leader_participation = on
-#max_parallel_workers = 8		# maximum number of max_worker_processes that
+max_parallel_workers = {{ postgres_extra_config.max_parallel_workers | default('8') }}		# maximum number of max_worker_processes that
 					# can be used in parallel operations
 #old_snapshot_threshold = -1		# 1min-60d; -1 disables; 0 is immediate
 					# (change requires restart)
@@ -237,7 +225,7 @@ wal_log_hints = on			# also do full page writes of non-critical updates
 					# (change requires restart)
 #wal_init_zero = on			# zero-fill new WAL files
 #wal_recycle = on			# recycle WAL files
-#wal_buffers = -1			# min 32kB, -1 sets based on shared_buffers
+wal_buffers = {{ postgres_extra_config.wal_buffers | default('-1') }}			# min 32kB, -1 sets based on shared_buffers
 					# (change requires restart)
 #wal_writer_delay = 200ms		# 1-10000 milliseconds
 #wal_writer_flush_after = 1MB		# measured in pages, 0 disables
@@ -248,10 +236,10 @@ wal_log_hints = on			# also do full page writes of non-critical updates
 
 # - Checkpoints -
 
-#checkpoint_timeout = 5min		# range 30s-1d
-max_wal_size = 1GB
-min_wal_size = 80MB
-#checkpoint_completion_target = 0.5	# checkpoint target duration, 0.0 - 1.0
+checkpoint_timeout = {{ postgres_extra_config.checkpoint_timeout | default('5min') }}		# range 30s-1d
+max_wal_size = {{ postgres_extra_config.max_wal_size | default('1GB') }}
+min_wal_size = {{ postgres_extra_config.min_wal_size | default('80MB') }}
+checkpoint_completion_target = {{ postgres_extra_config.checkpoint_completion_target | default('0.5') }}	# checkpoint target duration, 0.0 - 1.0
 #checkpoint_flush_after = 256kB		# measured in pages, 0 disables
 #checkpoint_warning = 30s		# 0 disables
 
@@ -432,13 +420,9 @@ max_standby_streaming_delay = {{ postgres_extra_config.max_standby_streaming_del
 # - Planner Cost Constants -
 
 #seq_page_cost = 1.0			# measured on an arbitrary scale
-{% if postgres_specific_random_page_cost is defined -%}
 # Random page cost is an arbitrary value relative to the seq_page_cost conf (default 1.0)
 # On SSD disk it is better to lower the default value from 4.0 to 1.0 for instance.
-random_page_cost = {{ postgres_specific_random_page_cost }}			# same scale as above
-{% else -%}
-#random_page_cost = 4.0			# same scale as above
-{% endif %}
+random_page_cost = {{ postgres_extra_config.random_page_cost | default('4.0') }}	# same scale as above
 #cpu_tuple_cost = 0.01			# same scale as above
 #cpu_index_tuple_cost = 0.005		# same scale as above
 #cpu_operator_cost = 0.0025		# same scale as above
@@ -456,8 +440,7 @@ random_page_cost = {{ postgres_specific_random_page_cost }}			# same scale as ab
 
 #min_parallel_table_scan_size = 8MB
 #min_parallel_index_scan_size = 512kB
-#effective_cache_size = 4GB
-effective_cache_size = {{ ansible_memtotal_mb // 2 }}MB
+effective_cache_size = {{ postgres_extra_config.effective_cache_size | default('4GB') }}
 
 # - Genetic Query Optimizer -
 
@@ -471,7 +454,7 @@ effective_cache_size = {{ ansible_memtotal_mb // 2 }}MB
 
 # - Other Planner Options -
 
-#default_statistics_target = 100	# range 1-10000
+default_statistics_target = {{ postgres_extra_config.default_statistics_target | default('100') }}	# range 1-10000
 #constraint_exclusion = partition	# on, off, or partition
 #cursor_tuple_fraction = 0.1		# range 0.0-1.0
 #from_collapse_limit = 8
@@ -650,7 +633,7 @@ cluster_name = '{{ postgres_version }}/{{ postgres_cluster_name }}'			# added to
 #track_counts = on
 #track_io_timing = off
 #track_functions = none			# none, pl, all
-#track_activity_query_size = 1024	# (change requires restart)
+track_activity_query_size = {{ postgres_extra_config.track_activity_query_size | default('1024') }}	# (change requires restart)
 stats_temp_directory = '/var/run/postgresql/{{ postgres_version }}-{{ postgres_cluster_name }}.pg_stat_tmp'
 
 
@@ -775,6 +758,10 @@ default_text_search_config = '{{ postgres_text_search_config }}'
 # - Shared Library Preloading -
 
 shared_preload_libraries = '{{ postgres_extra_config.shared_preload_libraries | default('') }}'		# (change requires restart)
+{% if postgres_extra_config.shared_preload_libraries is defined and postgres_extra_config.shared_preload_libraries|length %}
+pg_stat_statements.track = {{ postgres_extra_config.pg_stat_statements_track }}
+pg_stat_statements.max = {{ postgres_extra_config.pg_stat_statements_max }}
+{% endif %}
 #local_preload_libraries = ''
 #session_preload_libraries = ''
 #jit_provider = 'llvmjit'		# JIT library to use
