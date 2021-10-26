@@ -1,0 +1,13 @@
+---
+- name: Add GRANT
+  become: yes
+  become_user: postgres
+  postgresql_privs:
+    db: "{{ item.1.db }}"
+    privs: "{{ item.1.privs }}"
+    type: "{{ item.1.type }}"
+    objs: "{{ item.1.objs }}"
+    schema: "{{ item.1.schema }}"
+    role: "{{ item.1.role }}"
+  loop: "{{ q('subelements', postgres_clusters, 'user_grants', {'skip_missing': True}) }}"
+
