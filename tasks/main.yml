@@ -60,3 +60,9 @@
   tags:
     - postgres
     - postgres-pgupgrades
+
+- include: postgres-zabbix-grants.yml
+  when: postgres_monitoring is true
+  tags:
+    - postgres
+    - postgres_grant
