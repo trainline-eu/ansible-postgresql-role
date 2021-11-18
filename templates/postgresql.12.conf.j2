@@ -255,7 +255,7 @@ min_wal_size = 80MB
 
 {% if postgres_archive_enabled %}
 archive_mode = on
-archive_command = 'rsync -a %p barman@{{ postgres_barman_server }}:/var/lib/barman/{{ barman_directory }}/incoming/%f'
+archive_command = 'rsync -a %p barman@{{ barman_server }}:/var/lib/barman/{{ barman_directory }}/incoming/%f'
 {% else %}
 archive_mode = off
 archive_command = ''
@@ -278,7 +278,7 @@ archive_command = ''
 {% if postgres_primary and postgres_primary.restore_command is defined %}
 restore_command = '{{ postgres_primary.restore_command }}'		# command to use to restore an archived logfile segment
 {% elif postgres_primary and postgres_primary.restore_barman_directory is defined %}
-restore_command = '/usr/bin/barman-wal-restore --user barman --parallel 8 {{ postgres_barman_server }} {{ postgres_primary.restore_barman_directory }} %f %p'		# command to use to restore an archived logfile segment
+restore_command = '/usr/bin/barman-wal-restore --user barman --parallel 8 {{ barman_server }} {{ postgres_primary.restore_barman_directory }} %f %p'		# command to use to restore an archived logfile segment
 {% else %}
 #restore_command = ''		# command to use to restore an archived logfile segment
 {% endif %}

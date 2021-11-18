@@ -2,14 +2,14 @@
 - name: Compute barman remote URL
   set_fact:
     barman_remote_url: "{{ scheme }}{{ user }}{{ server }}{{ delimiter }}{{ path }}"
-    rsync_options: "{{ postgres_barman_rsync_options | default('') }}{{ rsync_password_file }}"
+    rsync_options: "{{ barman_rsync_options | default('') }}{{ rsync_password_file }}"
   vars:
-    scheme: "{{ postgres_barman_rsync_enabled | ternary('rsync://', '') }}"
-    user: "{{ postgres_barman_remote_user is defined | ternary(postgres_barman_remote_user + '@', '') }}"
-    server: "{{ postgres_barman_server }}"
-    delimiter: "{{ postgres_barman_rsync_enabled | ternary('', ':')}}"
-    path: "{{ postgres_barman_path_prefix | default('~') }}"
-    rsync_password_file: "{{ postgres_barman_rsync_enabled | ternary(' --password-file=/var/lib/postgresql/.rsync_pass ', '') }}"
+    scheme: "{{ barman_rsync_enabled | ternary('rsync://', '') }}"
+    user: "{{ barman_remote_user is defined | ternary(barman_remote_user + '@', '') }}"
+    server: "{{ barman_server }}"
+    delimiter: "{{ barman_rsync_enabled | ternary('', ':')}}"
+    path: "{{ barman_path_prefix | default('~') }}"
+    rsync_password_file: "{{ barman_rsync_enabled | ternary(' --password-file=/var/lib/postgresql/.rsync_pass ', '') }}"
 
 - name: Copy secondary barman clone script
   template: src=standby-barman-clone.sh.j2 dest=/root/standby-clone-{{ postgres_version }}-{{ postgres_cluster_name }}.sh mode=0755
@@ -22,4 +22,4 @@
     group: postgres
     mode: 0400
   no_log: True
-  when: postgres_barman_rsync_enabled
+  when: barman_rsync_enabled

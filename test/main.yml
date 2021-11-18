@@ -2,10 +2,11 @@
 - name: Bring up docker containers
   hosts: localhost
   vars: &common_vars
-    postgres_barman_directory: "test-postgres-{{ postgres_version }}"
-    postgres_barman_server: postgres_barman
-    barman_rsync_password: "secret_rsync"
-    barman_rsync_allowed_hosts: 172.17.0.0/24
+    barman: &common_barman_vars
+      directory: "test-postgres-{{ postgres_version }}"
+      server: postgres_barman
+      rsync_password: "secret_rsync"
+      rsync_allowed_hosts: 172.17.0.0/24
     postgres_allowed_hosts:
       - user: all
         range: 172.17.0.0/24
@@ -13,21 +14,21 @@
       - user: replicator
         range: 172.17.0.0/24
     inventory:
-      - name: "{{ postgres_barman_server }}"
+      - name: "{{ barman.server }}"
         image: "python:3.7-{{ debian_release }}"
       - name: postgres_one
         image: "python:3.7-{{ debian_release }}"
         links:
-          - "{{ postgres_barman_server }}"
+          - "{{ barman.server }}"
       - name: postgres_two
         image: "python:3.7-{{ debian_release }}"
         links:
-          - "{{ postgres_barman_server }}"
+          - "{{ barman.server }}"
           - postgres_one
       - name: postgres_three
         image: "python:3.7-{{ debian_release }}"
         links:
-          - "{{ postgres_barman_server }}"
+          - "{{ barman.server }}"
           - postgres_one
   roles:
     - role: provision_docker
@@ -49,7 +50,9 @@
             fsync_enabled: True
             checksums: False
             archive_enabled: True
-            barman_directory: "{{ postgres_barman_directory }}"
+            barman:
+              <<: *common_barman_vars
+              directory: "{{ postgres_barman_directory }}"
             users:
               - username: tester
                 password: tester
@@ -87,7 +90,9 @@
             fsync_enabled: True
             checksums: False
             archive_enabled: True
-            barman_directory: "{{ postgres_barman_directory }}"
+            barman:
+              <<: *common_barman_vars
+              directory: "{{ postgres_barman_directory }}"
             primary:
               host: postgres_one
               port: 5432

@@ -4,8 +4,8 @@
 standby_mode = 'on'
 {% if postgres_primary.restore_command is defined %}
 restore_command = '{{ postgres_primary.restore_command }}'
-{% elif postgres_primary.restore_barman_directory is defined %}
-restore_command = '/usr/bin/barman-wal-restore --user barman --parallel 8 {{ postgres_barman_server }} {{ postgres_primary.restore_barman_directory }} %f %p'
+{% elif postgres_primary.restore_barman_directory is defined and barman_server is defined %}
+restore_command = '/usr/bin/barman-wal-restore --user barman --parallel 8 {{ barman_server }} {{ postgres_primary.restore_barman_directory }} %f %p'
 {% endif %}
 primary_conninfo = 'host={{ postgres_primary.host }} port={{ postgres_primary.port }} user={{ postgres_primary.replication_user }} password={{ postgres_primary.replication_password }} sslmode=require'
 trigger_file = '/var/lib/postgresql/{{ postgres_version }}/{{ postgres_cluster_name }}/failover.trigger'

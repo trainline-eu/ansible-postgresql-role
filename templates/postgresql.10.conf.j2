@@ -242,7 +242,7 @@ wal_log_hints = on			# also do full page writes of non-critical updates
 
 {% if postgres_archive_enabled %}
 archive_mode = on
-archive_command = 'rsync -a %p {{ postgres_barman_remote_user }}@{{ postgres_barman_server }}:/var/lib/barman/{{ barman_directory }}/incoming/%f'
+archive_command = 'rsync -a %p {{ barman_remote_user }}@{{ barman_server }}:/var/lib/barman/{{ barman_directory }}/incoming/%f'
 {% else %}
 archive_mode = off
 archive_command = ''

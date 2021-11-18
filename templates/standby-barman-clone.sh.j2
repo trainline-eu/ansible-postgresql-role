@@ -16,7 +16,7 @@ fi
 BACKUP_DATE=`date +%s`
 
 echo "accept key if necessary"
-sudo -u postgres ssh barman@{{ postgres_barman_server }} echo ""
+sudo -u postgres ssh barman@{{ barman_server }} echo ""
 
 echo Stopping PostgreSQL
 pg_ctlcluster {{ postgres_version }} {{ postgres_cluster_name }} stop || true
