@@ -1,23 +1,20 @@
 ---
 - set_fact:
-    postgres_dbname: "{{ postgres_pgupgrade.dbname }}"
     postgres_pgbouncer_uri: "{{ postgres_pgupgrade.pgbouncer_uri|default(None) }}"
+    postgres_pgbouncer_databases: "{{ postgres_pgupgrade.databases|default([]) }}"
+    postgres_cluster_name: "{{ postgres_pgupgrade.cluster_name }}"
+    postgres_port: "{{ postgres_pgupgrade.port }}"
     postgres_old_cluster_version: "{{ postgres_pgupgrade.old_cluster_version }}"
-    postgres_old_cluster_name: "{{ postgres_pgupgrade.old_cluster_name }}"
     postgres_new_cluster_version: "{{ postgres_pgupgrade.new_cluster_version }}"
-    postgres_new_cluster_name: "{{ postgres_pgupgrade.new_cluster_name }}"
-    postgres_standby_server: "{{ postgres_pgupgrade.standby_server }}"
-    postgres_standby_old_cluster_name: "{{ postgres_pgupgrade.standby_old_cluster_name|default(postgres_pgupgrade.old_cluster_name) }}"
-    postgres_standby_new_cluster_name: "{{ postgres_pgupgrade.standby_new_cluster_name|default(postgres_pgupgrade.new_cluster_name) }}"
 
 - name: Find matching new cluster
   set_fact:
-    postgres_new_cluster: "{{ postgres_clusters|selectattr('name','equalto',postgres_new_cluster_name)|selectattr('version','equalto', postgres_new_cluster_version|float)|list|first }}"
+    postgres_new_cluster: "{{ postgres_clusters|selectattr('name','equalto',postgres_cluster_name)|selectattr('version','equalto', postgres_new_cluster_version|float)|list|first }}"
 
 - name: Extract database port of new matching cluster
   set_fact:
     postgres_new_cluster_port: "{{ (postgres_new_cluster|default({'port': 5432}))['port'] }}"
 
 - name: Upload pg_upgrade.sh script
-  template: src=pg_upgrade.sh.j2 dest=/var/lib/postgresql/pg_upgrade_{{ postgres_old_cluster_version }}_{{ postgres_new_cluster_version }}_{{ postgres_dbname }} owner=postgres group=postgres mode=0700
+  template: src=pg_upgrade.sh.j2 dest=/var/lib/postgresql/pg_upgrade_{{ postgres_old_cluster_version }}_{{ postgres_new_cluster_version }}_{{ postgres_cluster_name }} owner=postgres group=postgres mode=0700
   no_log: True
